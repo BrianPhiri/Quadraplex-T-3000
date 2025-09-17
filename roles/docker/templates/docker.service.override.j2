@@ -1,0 +1,9 @@
+[Service]
+{% for override in docker_service_overrides %}
+{{ override.key }}={{ override.value }}
+{% endfor %}
+
+{% if docker_daemon_port_enabled | default(false) %}
+ExecStart=
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock
+{% endif %}

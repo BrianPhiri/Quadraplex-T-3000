@@ -1,0 +1,59 @@
+---
+- name: Wait for Docker daemon to be ready
+  wait_for:
+    port: 2375
+    host: 127.0.0.1
+    timeout: 60
+  when: docker_daemon_port_enabled | default(false)
+
+- name: Verify Docker installation
+  command: docker --version
+  register: docker_version_check
+  changed_when: false
+  failed_when: docker_version_check.rc != 0
+
+- name: Verify Docker Compose plugin installation
+  command: docker compose version
+  register: compose_plugin_version
+  changed_when: false
+  failed_when: compose_plugin_version.rc != 0
+
+- name: Test Docker functionality with hello-world
+  command: docker run --rm hello-world
+  register: docker_test
+  changed_when: false
+  failed_when: docker_test.rc != 0
+
+- name: Check Docker daemon status
+  command: systemctl is-active docker
+  register: docker_status
+  changed_when: false
+  failed_when: docker_status.stdout != "active"
+
+- name: Display Docker installation summary
+  debug:
+    msg:
+      - "Docker Version: {{ docker_version_check.stdout }}"
+      - "Docker Compose Plugin: {{ compose_plugin_version.stdout }}"
+      - "Docker Compose Standalone: {{ compose_standalone_version.stdout | default('Not installed') }}"
+      - "Docker Status: {{ docker_status.stdout }}"
+      - "Docker Test: {{ 'PASSED' if docker_test.rc == 0 else 'FAILED' }}"
+
+- name: Verify users can access Docker
+  command: docker ps
+  become: yes
+  become_user: "{{ item }}"
+  register: user_docker_access
+  changed_when: false
+  failed_when: user_docker_access.rc != 0
+  loop: "{{ docker_users }}"
+  when: verify_user_access | default(true)
+
+- name: Check Docker disk usage
+  command: docker system df
+  register: docker_disk_usage
+  changed_when: false
+
+- name: Display Docker disk usage
+  debug:
+    var: docker_disk_usage.stdout_lines

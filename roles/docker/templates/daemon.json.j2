@@ -1,0 +1,84 @@
+{
+  "data-root": "{{ docker_data_root }}",
+  "storage-driver": "{{ docker_storage_driver }}",
+  "log-driver": "{{ docker_log_driver }}",
+  "log-opts": {
+{% if docker_log_driver == "json-file" %}
+    "max-size": "{{ docker_log_max_size }}",
+    "max-file": "{{ docker_log_max_files }}",
+    "compress": "{{ docker_log_compress | string | lower }}"
+{% elif docker_log_driver == "syslog" %}
+    "syslog-address": "{{ docker_syslog_address }}",
+    "tag": "{{ docker_syslog_tag }}"
+{% endif %}
+  },
+{% if docker_registry_mirrors | length > 0 %}
+  "registry-mirrors": [
+{% for mirror in docker_registry_mirrors %}
+    "{{ mirror }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+{% endif %}
+{% if docker_insecure_registries | length > 0 %}
+  "insecure-registries": [
+{% for registry in docker_insecure_registries %}
+    "{{ registry }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+{% endif %}
+{% if docker_dns | length > 0 %}
+  "dns": [
+{% for dns_server in docker_dns %}
+    "{{ dns_server }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+{% endif %}
+  "default-ulimits": {
+    "nofile": {
+      "Hard": {{ docker_ulimit_nofile_hard }},
+      "Name": "nofile",
+      "Soft": {{ docker_ulimit_nofile_soft }}
+    },
+    "nproc": {
+      "Hard": {{ docker_ulimit_nproc_hard }},
+      "Name": "nproc", 
+      "Soft": {{ docker_ulimit_nproc_soft }}
+    }
+  },
+{% if docker_enable_live_restore %}
+  "live-restore": {{ docker_enable_live_restore | string | lower }},
+{% endif %}
+{% if docker_userland_proxy is defined %}
+  "userland-proxy": {{ docker_userland_proxy | string | lower }},
+{% endif %}
+{% if docker_enable_ip_forward is defined %}
+  "ip-forward": {{ docker_enable_ip_forward | string | lower }},
+{% endif %}
+{% if docker_enable_iptables is defined %}
+  "iptables": {{ docker_enable_iptables | string | lower }},
+{% endif %}
+{% if docker_bridge_ip is defined %}
+  "bip": "{{ docker_bridge_ip }}",
+{% endif %}
+{% if docker_default_address_pools | length > 0 %}
+  "default-address-pools": [
+{% for pool in docker_default_address_pools %}
+    {
+      "base": "{{ pool.base }}",
+      "size": {{ pool.size }}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+{% endif %}
+  "max-concurrent-downloads": {{ docker_max_concurrent_downloads }},
+  "max-concurrent-uploads": {{ docker_max_concurrent_uploads }},
+  "max-download-attempts": {{ docker_max_download_attempts }},
+{% if docker_experimental_features %}
+  "experimental": {{ docker_experimental_features | string | lower }},
+{% endif %}
+{% if docker_metrics_address is defined %}
+  "metrics-addr": "{{ docker_metrics_address }}",
+  "experimental": true,
+{% endif %}
+  "shutdown-timeout": {{ docker_shutdown_timeout }}
+}

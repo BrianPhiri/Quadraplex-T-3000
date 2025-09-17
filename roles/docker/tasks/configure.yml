@@ -1,0 +1,80 @@
+---
+- name: Ensure Docker config directory exists
+  become: yes
+  file:
+    path: /etc/docker
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Generate Docker daemon configuration
+  become: yes
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+    owner: root
+    group: root
+    backup: yes
+  notify: restart docker
+
+- name: Ensure Docker data directory has proper permissions
+  become: yes
+  file:
+    path: "{{ docker_data_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0710'
+
+- name: Create Docker log directory
+  become: yes
+  file:
+    path: "{{ docker_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: docker_log_dir is defined
+
+- name: Configure log rotation for Docker
+  become: yes
+  template:
+    src: docker-logrotate.j2
+    dest: /etc/logrotate.d/docker
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Configure Docker service override (if needed)
+  become: yes
+  template:
+    src: docker.service.override.j2
+    dest: /etc/systemd/system/docker.service.d/override.conf
+    mode: '0644'
+    owner: root
+    group: root
+  when: docker_service_overrides | length > 0
+  notify:
+    - reload systemd
+    - restart docker
+
+- name: Ensure systemd override directory exists
+  become: yes
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+  when: docker_service_overrides | length > 0
+
+- name: Set up Docker registry mirrors (if configured)
+  become: yes
+  template:
+    src: registry-mirrors.json.j2
+    dest: /etc/docker/registry-mirrors.json
+    mode: '0644'
+    owner: root
+    group: root
+  when: docker_registry_mirrors | length > 0
+  notify: restart docker
