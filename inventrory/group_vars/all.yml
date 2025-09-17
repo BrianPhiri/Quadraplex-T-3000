@@ -1,0 +1,4 @@
+# Docker configuration
+docker_users:
+  - "{{ ansible_user }}"
+  - "media"
