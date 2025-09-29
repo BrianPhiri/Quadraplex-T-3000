@@ -4,24 +4,3 @@ users_to_create:
     hosts:
       - "media_servers"
     ssh_key_file: "~/.ssh/id_rsa.pub"
-
-  - name: "utility"
-    group: "utility"
-    hosts:
-      - "media_servers"
-    ssh_key_file: "~/.ssh/id_rsa.pub"
-
-  - name: "testuser"
-    group: "testuser"
-    hosts:
-      - "media_servers"
-    ssh_key_file: "~/.ssh/id_rsa.pub"
-
-  - name: "yankydodo"
-    group: "yankydodo"
-    hosts:
-      - "media_servers"
-    ssh_key_file: "~/.ssh/id_rsa.pub"
-
-
-
