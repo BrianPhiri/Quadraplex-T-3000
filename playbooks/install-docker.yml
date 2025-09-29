@@ -4,14 +4,7 @@
   become: yes
   gather_facts: yes
   serial: "{{ install_serial | default(1) }}"  # Install one at a time by default
-  
-  vars:
-    # Override these in command line or group_vars
-    docker_users:
-      - "{{ ansible_user }}"
-      - "media"
-      - 
-    
+   
   vars_files:
     - ../vars/versions.yml
     
