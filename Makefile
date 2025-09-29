@@ -18,6 +18,19 @@ help: ## Show this help message
 	@echo '  make install-docker HOST=media-prod-01'
 	@echo '  make docker-test ENV=staging'
 
+
+test-connection:
+	@echo "Testing ansible connection to host: $(HOST)"
+	ansible $(ENV) $(ANSIBLE_OPTS) -m ping
+
+create-users:
+	@echo "Creating host users on $(ENV) environment..."
+	ansible-playbook $(ANSIBLE_OPTS) \
+		-l $(ENV) \
+		-e target_hosts=$(HOST) \
+		playbooks/create-users.yml
+
+
 install-docker: ## Install Docker on target hosts
 	@echo "Installing Docker on $(ENV) environment..."
 	ansible-playbook $(ANSIBLE_OPTS) \

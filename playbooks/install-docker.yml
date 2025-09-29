@@ -10,6 +10,7 @@
     docker_users:
       - "{{ ansible_user }}"
       - "media"
+      - 
     
   vars_files:
     - ../vars/versions.yml
@@ -44,18 +45,7 @@
           - available_space.stdout | int > 2097152  # 2GB in KB
         fail_msg: "Insufficient disk space. Need at least 2GB free"
       tags: validate
-      
-    - name: Create media user if it doesn't exist
-      user:
-        name: media
-        uid: 1000
-#        group: media
-        shell: /bin/bash
-        create_home: yes
-        ssh_key_file: ~/.ssh/id_rsa.pub
-        comment: "Media Stack User"
-      when: "'media' in docker_users"
-      
+           
   roles:
     - role: docker
       tags: ['docker']
