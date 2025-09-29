@@ -1,0 +1,40 @@
+---
+- name: DEBUG - Check host matching variables
+  debug:
+    msg:
+      - "Check for user {{ current_user.name }}"
+      - "Current Hostname: {{ ansible_hostname }}"
+      - "Host Groups: {{ group_names | default([]) }}"
+      - "User's Target Hosts (current_user.hosts): {{ current_user.hosts }}"
+      - "Condition 1 (Hostname match): {{ ansible_hostname in current_user.hosts }}"
+      - "Condition 2 (Keyword 'all'): {{ 'all' in current_user.hosts }}"
+      - "Condition 3 (Group intersection): {{ (group_names | intersect(current_user.hosts) | length > 0) }}"
+  when: current_user.hosts is defined # Only run if the hosts list exists
+
+- name: Check if current host is in the current user's specified hosts list
+  set_fact:
+    should_run_user_task: "{{ ansible_host in current_user.hosts or ansible_fqdn in current_user.hosts or 'all' in current_user.hosts or (group_names | intersect(current_user.hosts) | length > 0) }}"
+
+- name: Ensure target group {{ current_user.group }} exists
+  group:
+    name: "{{ current_user.group }}"
+    state: present
+  when: |
+    current_user.group is defined and
+    (
+      inventory_hostname in current_user.hosts or
+      'all' in current_user.hosts or
+      (group_names | intersect(current_user.hosts) | length > 0)
+    )
+ 
+- name: Create the user
+  user:
+    name: "{{ current_user.name }}"
+    groups: "{{ current_user.group | default(omit) }}"
+    state: "{{ current_user.state | default('present') }}"
+    shell: /bin/bash
+    create_home: yes
+    ssh_key_file:  "{{ current_user.ssh_key_file | default('~/.ssh/id_rsa.pub') }}"
+    comment: "User creation"
+  when: should_run_user_task
+

@@ -1,0 +1,13 @@
+- name: Include user creation tasks
+  include_tasks: create.yml
+  loop: "{{ users_to_create }}"
+  loop_control:
+    loop_var: current_user
+  tags: ['users', 'creation']
+
+- name: Include verification tasks
+  include_tasks: verify.yml
+  loop: "{{ users_to_create }}"
+  loop_control:
+    loop_var: user_to_check
+  tags: ['users', 'verify'] 
