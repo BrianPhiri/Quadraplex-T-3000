@@ -1,0 +1,33 @@
+---
+- name: Include directory creation tasks
+  include_tasks: directories.yml
+  tags: ['media', 'directories']
+
+- name: Include configuration tasks
+  include_tasks: configs.yml
+  tags: ['media', 'configs']
+
+- name: Include docker-compose deployment
+  include_tasks: docker-compose.yml
+  tags: ['media', 'deploy']
+
+- name: Include verification tasks
+  include_tasks: verify.yml
+  tags: ['media', 'verify']
+
+- name: Display media stack URLs
+  debug:
+    msg:
+      - "Media Stack Services:"
+      - "  Prowlarr:   http://{{ ansible_host }}:{{ services.prowlarr.port }}"
+      - "  Sonarr:   http://{{ ansible_host }}:{{ services.sonarr.port }}"
+      - "  Radarr:   http://{{ ansible_host }}:{{ services.radarr.port }}"
+      - "  Jellyfin:   http://{{ ansible_host }}:{{ services.jellyfin.port }}"
+      - "  Jellyseerr:   http://{{ ansible_host }}:{{ services.jellyseerr.port }}"
+      - "  Lidarr:   http://{{ ansible_host }}:{{ services.lidarr.port }}"
+      - "  Qbittorrent:   http://{{ ansible_host }}:{{ services.qbittorrent.port }}"
+      - "  Suggestarr:   http://{{ ansible_host }}:{{ services.suggestarr.port }}"
+      - "  Huntarr:   http://{{ ansible_host }}:{{ services.huntarr.port }}"
+      - "  Bazarr:   http://{{ ansible_host }}:{{ services.bazarr.port }}"
+      - "  Kavita:   http://{{ ansible_host }}:{{ services.kavita.port }}"
+  tags: always

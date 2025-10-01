@@ -1,0 +1,25 @@
+---
+- name: restart media stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ media_stack.base_path }}"
+    state: present
+    pull: missing
+    remove_orphans: yes
+  listen: "restart media stack"
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+
+- name: enable media stack service
+  systemd:
+    name: media-stack
+    enabled: yes
+  listen: "enable media stack service"
+
+- name: stop media stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ media_stack.base_path }}"
+    state: absent
+  listen: "stop media stack"
