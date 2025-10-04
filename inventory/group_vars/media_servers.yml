@@ -87,4 +87,3 @@ services:
     port: 5001
     internal_port: 5000
     version: "{{ media_stack.versions.kavita | default('latest') }}"
-
