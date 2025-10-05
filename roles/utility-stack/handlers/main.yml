@@ -1,7 +1,7 @@
 ---
 - name: restart utility stack
   community.docker.docker_compose_v2:
-    project_src: "{{ utiltiy_stack.base_path }}"
+    project_src: "{{ utility_stack.base_path }}"
     state: present
     pull: missing
     remove_orphans: yes
@@ -20,6 +20,6 @@
 
 - name: stop utility stack
   community.docker.docker_compose_v2:
-    project_src: "{{ utiltiy_stack.base_path }}"
+    project_src: "{{ utility_stack.base_path }}"
     state: absent
   listen: "stop utility stack"

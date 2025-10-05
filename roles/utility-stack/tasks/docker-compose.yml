@@ -5,7 +5,7 @@
     state: present
 
 - name: Stop existing utility stack (if running)
-  docker_compose:
+  community.docker.docker_compose_v2:
     project_src: "{{ utility_stack.base_path }}"
     state: absent
   ignore_errors: yes
@@ -23,7 +23,7 @@
 - name: Display docker-compose results
   debug:
     var: compose_result.services
-  when: cjmpose_result.changed
+  when: compose_result.changed
 
 - name: Ensure all enabled services are running
   docker_container_info:

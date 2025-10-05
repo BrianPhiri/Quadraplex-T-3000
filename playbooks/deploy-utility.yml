@@ -15,7 +15,17 @@
           - "Deploying utility stack to: {{ inventory_hostname }}"
           - "Services to deploy:"
           - " - Portainer: {{ services.portainer.enabled | default(true) }}"
+          - " - Grafana: {{ services.grafana.enabled | default(true) }}"
+          - " - Uptime-kuma: {{ services.uptime_kuma.enabled | default(true) }}"
+          - " - Filebrowser: {{ services.filebrowser.enabled | default(true) }}"
       tags: always
+
+    - name: Show active Python interpreter
+      ansible.builtin.command: "{{ ansible_python_interpreter }} --version"
+      register: py_ver
+    
+    - debug:
+        var: py_ver.stdout
 
   roles:
     - role: utility-stack
@@ -30,6 +40,9 @@
         timeout: 300
       loop:
         - { service: "portainer", port: "{{ services.portainer.port }}"}
+        - { service: "filebrowser", port: "{{ services.filebrowser.port }}"}
+        - { service: "uptime_kuma", port: "{{ services.uptime_kuma.port }}"}
+        - { service: "grafana", port: "{{ services.grafana.port }}"}
       when: services[item.service].enabled | default(true)
       
     - name: Display access information
@@ -39,4 +52,6 @@
           - ""
           - "Service URLs:"
           - "  Portainer:    http://{{ ansible_host }}:{{ services.portainer.port }}"
+          - "  Filebrowser:    http://{{ ansible_host }}:{{ services.filebrowser.port }}"
+          - "  Uptime-kuma:    http://{{ ansible_host }}:{{ services.uptime_kuma.port }}"
       tags: always
