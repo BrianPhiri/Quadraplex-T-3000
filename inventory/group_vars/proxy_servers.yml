@@ -1,0 +1,65 @@
+---
+# proxy stack configuration
+proxy_stack_base_path: "/opt/proxy-stack"
+proxy_stack:
+  # Paths
+  base_path: "{{ proxy_stack_base_path }}"
+  config_path: "{{ proxy_stack_base_path }}/configs"
+  data_path: "{{ proxy_stack_base_path }}/data"
+  downloads_path: "{{ proxy_stack_base_path }}/downloads"
+  proxy_path: "{{ proxy_stack_base_path }}/proxy"
+
+  # Network
+  network_name: "proxy-net"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+ 
+  # Domain configuration
+  domain: "example.com"
+
+  # Container versions (can be overridden per environment)
+  versions:
+    traefik: "v3.0"
+ 
+  services:
+    traefik:
+      enabled: true
+      http: 80
+      https: 443
+      version: "{{ utility_stack.versions.traefik | default('v3.0') }}"
+  
+  # Cloudflare credentials
+  cloudflare_api_token: "your-cloudflare-api-token-here"
+  
+  # Traefik dashboard credentials (htpasswd format)
+  # Generate with: echo $(htpasswd -nb admin your-password) | sed -e s/\\$/\\$\\$/g
+  traefik_dashboard_credentials: "admin:$$apr1$$abc123$$xyz..."
+  traefik_dashboard_host: "traefik.example.com"
+  
+  # Traefik configuration
+  traefik_acme_email: "admin@example.com"
+  traefik_debug: false
+  
+  # Auto-generate routes from this list
+  traefik_routes:
+    - name: proxmox
+      host: proxmox
+      service: proxmox
+      
+    - name: portainer
+      host: portainer
+      service: portainer
+ 
+  # Define backend services
+  traefik_services:
+    - name: proxmox
+      servers:
+        - url: "https://192.168.100.20:8006"
+      pass_host_header: true
+      
+    - name: portainer
+      servers:
+        - url: "{{ utility_stack.versions.portainer | default('lts') }}"

@@ -1,0 +1,50 @@
+---
+- name: Create proxy stack base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - "{{ proxy_stack.base_path }}"
+    - "{{ proxy_stack.config_path }}"
+    - "{{ proxy_stack.data_path }}"
+
+- name: Create service-specific config directories
+  file:
+    path: "{{ proxy_stack.config_path }}/{{ item }}"
+    state: directory
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - traefik
+  when: services[item.split('/')[0]].enabled | default(true)
+
+- name: Create service-specific data directories
+  file:
+    path: "{{ proxy_stack.data_path }}/{{ item }}"
+    state: directory
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - traefik
+  when: services[item.split('/')[0]].enabled | default(true)
+
+- name: Set proper permissions for data directories
+  file:
+    path: "{{ proxy_stack.data_path }}"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Create backup directory
+  file:
+    path: "{{ proxy_stack.base_path }}/backups"
+    state: directory
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0755'
