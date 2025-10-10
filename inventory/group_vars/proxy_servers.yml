@@ -18,7 +18,7 @@ proxy_stack:
   group_id: 1000
  
   # Domain configuration
-  domain: "{{ env_vars.MY_DOMAIN | default('nodomain.none') }}"
+  domain: "{{ domain | default('nodomain.none') }}"
 
   # Container versions (can be overridden per environment)
   versions:
@@ -32,15 +32,15 @@ proxy_stack:
       version: "{{ utility_stack.versions.traefik | default('v3.0') }}"
   
   # Cloudflare credentials
-  cloudflare_api_token: "your-cloudflare-api-token-here"
+  cloudflare_api_token: "{{ cloudflare_token }}"
   
   # Traefik dashboard credentials (htpasswd format)
   # Generate with: echo $(htpasswd -nb admin your-password) | sed -e s/\\$/\\$\\$/g
-  traefik_dashboard_credentials: "admin:$$apr1$$abc123$$xyz..."
-  traefik_dashboard_host: "traefik.example.com"
+  traefik_dashboard_credentials: "{{ dashboard.credentials }}"
+  traefik_dashboard_host: "{{ dashboard.host }}"
   
   # Traefik configuration
-  traefik_acme_email: "admin@example.com"
+  traefik_acme_email: "{{ acme_email }}"
   traefik_debug: false
   
   # Auto-generate routes from this list
@@ -57,7 +57,7 @@ proxy_stack:
   traefik_services:
     - name: proxmox
       servers:
-        - url: "https://192.168.100.20:8006"
+        - url: "https://192.168.0.3:8006"
       pass_host_header: true
       
     - name: portainer
