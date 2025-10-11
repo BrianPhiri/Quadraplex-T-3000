@@ -1,6 +1,6 @@
 ---
 - name: Deploy core systems stack
-  hosts: "{{ target_host | default('core__servers') }}"
+  hosts: "{{ target_host | default('core_servers') }}"
   become: yes
   gather_facts: yes
   serial: "{{ deploy_serial | default(1) }}"
@@ -24,11 +24,11 @@
           - " - Adguard hoe: {{ services.adguard_home.enabled | default(true) }}"
       tags: always
 
-#  roles:
-#    - role: pre_checks:
-#      tags: ["core-systems-pre-check"]
-#    - role: core-systems-stack
-#      tags: ['core']
+  roles:
+    - role: pre-checks
+      tags: ["core-systems-pre-check"]
+    - role: core-stack
+      tags: ['core']
 
 #  post_tasks:
 #    - name: Confirming services are running
