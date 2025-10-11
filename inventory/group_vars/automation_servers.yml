@@ -7,12 +7,10 @@ automation_stack:
   config_path: "{{ automation_stack_base_path }}/configs"
   data_path: "{{ automation_stack_base_path }}/data"
   
-  timezone: "Africa/Nairobi"
-  # User configuration
-  user_id: 1000
-  group_id: 1000
-  
-  # Network
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+   # Network
   network_name: "automation-net"
   
   # Domain configuration
@@ -27,9 +25,9 @@ automation_stack:
     apprise_api: "latest"
 
 # Service configuration
-services:
+automation_services:
   homeassistant:
-    enabled: true
+    enabled: false
     port: 9443
     version: "{{ automation_stack.versions.homeassistant | default('latest') }}"
   n8n:
@@ -38,11 +36,11 @@ services:
     version: "{{ automation_stack.versions.n8n | default('latest') }}"
   gotify:
     enabled: false
-    http: 80
-    https: 443
+    http: 84
+    https: 2443
     version: "{{ automation_stack.versions.gotify | default('latest') }}"
   apprise_api:
     enabled: false
-    port: 8000
-    version: "{{ automation_stack.versions.apprise_api | default('lts') }}"
+    port: 8100
+    version: "{{ automation_stack.versions.apprise_api | default('latest') }}"
 

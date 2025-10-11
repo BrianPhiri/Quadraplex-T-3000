@@ -11,13 +11,13 @@
         msg:
           - "Deploying ai stack to: {{ inventory_hostname }}"
           - "Services to deploy:"
-          - "   - Open web UI: {{ services.openWebUi.enabled | default(true) }}"
-          - "   - Fast whisper: {{ services.faster_whisper.enabled | default(true) }}"
+          - "   - Open web UI: {{ ai_services.openWebUi.enabled | default(true) }}"
+          - "   - Fast whisper: {{ ai_services.faster_whisper.enabled | default(true) }}"
       tags: always
 
-#  roles:
-#    - role: pre-checks
-#      tags: ["ai-pre-checks"]
-#    - role: ai-stack
-#      tags: ['ai']
+  roles:
+    - role: pre-checks
+      tags: ["ai-pre-checks"]
+    - role: ai-stack
+      tags: ['ai']
  

@@ -1,0 +1,17 @@
+---
+- name: Set specialised stack-specific variables
+  set_fact:
+    stack_role_path: "{{ role_path }}"
+    
+- name: Deploy specialised stack using common docker-stack role
+  include_role:
+    name: base-stack
+  vars:
+    stack_name: "specialised-stack"
+    stack_config: "{{ specialised_stack }}"
+    stack_services: 
+      - browserless
+      - metatrader
+    stack_compose_template: "{{ stack_role_path }}/templates/docker-compose.yml.j2"
+    stack_systemd_template: "{{ stack_role_path }}/templates/systemd/specialised-stack.service.j2"
+    services: "{{ specialised_services }}"

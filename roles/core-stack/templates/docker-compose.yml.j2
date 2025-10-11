@@ -77,14 +77,14 @@ services:
 {% endif %}
 {% if services.traefik.enabled %}
   traefik:
-    image: traefik:{{ proxy_stack.services.traefik.version }}
+    image: traefik:{{ services.traefik.version }}
     container_name: traefik
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     ports:
-      - {{ core_stack.services.traefik.http }}:80
-      - {{ core_stack.services.traefik.https }}:443
+      - {{ services.traefik.http }}:80
+      - {{ services.traefik.https }}:443
     environment:
       CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
       TRAEFIK_DASHBOARD_CREDENTIALS: ${TRAEFIK_DASHBOARD_CREDENTIALS}
@@ -125,7 +125,7 @@ services:
        COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve"
        GID: "${GID-1000}"
      volumes:
-       - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml
+       - {{ core_stack.config_path }}/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml
        - {{ core_stack.data_path }}/crowdsec/db:/var/lib/crowdsec/data/
        - {{ core_stack.config_path }}/crowdsec:/etc/crowdsec/
      networks:

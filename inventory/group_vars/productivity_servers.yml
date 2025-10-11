@@ -6,12 +6,11 @@ productivity_stack:
   base_path: "{{ productivity_stack_base_path }}"
   config_path: "{{ productivity_stack_base_path }}/configs"
   data_path: "{{ productivity_stack_base_path }}/data"
-  
-  timezone: "Africa/Nairobi"
-  # User configuration
-  user_id: 1000
-  group_id: 1000
-  
+
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+
   # Network
   network_name: "productivity-net"
   
@@ -21,47 +20,35 @@ productivity_stack:
  
   # Container versions (can be overridden per environment)
   versions:
-    nextcloud: "lts"
-    gitea: "main"
-    code_server: "1"
-    penpot: "v2-s6"
-    quant_ux: "v2-s6"
-    grocy: "v2-s6"
-    hortusfox: "v2-s6"
+    nextcloud: "stable"
+    gitea: "1.24.6"
+    code_server: "latest"
+    grocy: "latest"
+    penpot: ""
+    quant_ux: ""
+    hortusfox: ""
 
 # Service configuration
-services:
+productivity_services:
   nextcloud:
     enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.nextcloud | default('lts') }}"
+    port: 7443
+    version: "{{ productivity_stack.versions.nextcloud | default('stable') }}"
   gitea:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.gitea | default('lts') }}"
+    enabled: true
+    port1: 8088
+    port2: 2221
+    version: "{{ productivity_stack.versions.gitea | default('1.24.6') }}"
   code_server:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.code_server | default('lts') }}"
-  nextcloud:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.portainer | default('lts') }}"
-  penpot:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.penpot | default('latest') }}"
-  quant_ux:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.quant_ux | default('lts') }}"
+    enabled: true
+    port: 9444
+    version: "{{ productivity_stack.versions.code_server | default('latest') }}"
   grocy:
-    enabled: false
-    port: 9443
-    version: "{{ productivity_stack.versions.grocy | default('lts') }}"
+    enabled: true
+    port: 89
+    version: "{{ productivity_stack.versions.grocy | default('latest') }}"
   hortusfox:
     enabled: false
-    port: 9443
+    port: 9443 
     version: "{{ productivity_stack.versions.hortusfox | default('lts') }}"
-
 

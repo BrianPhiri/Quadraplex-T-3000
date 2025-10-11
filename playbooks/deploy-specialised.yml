@@ -11,14 +11,14 @@
         msg:
           - "Deploying specialised stack to: {{ inventory_hostname }}"
           - "Services to deploy:"
-          - "   - Browserless: {{ services.browserless.enabled | default(true) }}"
-          - "   - Metatrader: {{ services.metatrader.enabled | default(true) }}"
+          - "   - Browserless: {{ specialised_services.browserless.enabled | default(true) }}"
+          - "   - Metatrader: {{ specialised_services.metatrader.enabled | default(true) }}"
       tags: always
 
-#  roles:
-#    - role: pre-checks
-#      tags: ["specialised-pre-checks"]
-#    - role: specialised-stack
-#      tags: ['specialised']
+  roles:
+    - role: pre-checks
+      tags: ["specialised-pre-checks"]
+    - role: specialised-stack
+      tags: ['specialised']
       
 

@@ -14,31 +14,31 @@
         msg:
           - "Deploying media stack to: {{ inventory_hostname }}"
           - "Services to deploy:"
-          - "   - Jellyfin: {{ services.jellyfin.enabled | default(true) }}"
-          - "   - Prowlarr: {{ services.prowlarr.enabled | default(false) }}"
-          - "   - Sonarr: {{ services.sonarr.enabled | default(false) }}"
-          - "   - Radarr: {{ services.radarr.enabled | default(false) }}"
-          - "   - Lidarr: {{ services.lidarr.enabled | default(false) }}"
-          - "   - Qbittorrent: {{ services.qbittorrent.enabled | default(false) }}"
-          - "   - Jellyseerr: {{ services.jellyseerr.enabled | default(false) }}"
-          - "   - Bazarr: {{ services.bazarr.enabled | default(false) }}"
-          - "   - Releasarr: {{ services.releasarr.enabled | default(false) }}"
-          - "   - Suggestarr: {{ services.suggestarr.enabled | default(false) }}"
-          - "   - Huntarr: {{ services.huntarr.enabled | default(false) }}"
-          - "   - Kavita: {{ services.kavita.enabled | default(false) }}"
-          - "   - Immich: {{ services.immich.enabled | default(false) }}"
-          - "   - Lychee: {{ services.lychee.enabled | default(false) }}"
-          - "   - Mame: {{ services.mame.enabled | default(false) }}"
-          - "   - your_spotify: {{ services.your_spotify.enabled | default(false) }}"
+          - "   - Jellyfin: {{ media_services.jellyfin.enabled | default(true) }}"
+          - "   - Prowlarr: {{ media_services.prowlarr.enabled | default(false) }}"
+          - "   - Sonarr: {{ media_services.sonarr.enabled | default(false) }}"
+          - "   - Radarr: {{ media_services.radarr.enabled | default(false) }}"
+          - "   - Lidarr: {{ media_services.lidarr.enabled | default(false) }}"
+          - "   - Qbittorrent: {{ media_services.qbittorrent.enabled | default(false) }}"
+          - "   - Jellyseerr: {{ media_services.jellyseerr.enabled | default(false) }}"
+          - "   - Bazarr: {{ media_services.bazarr.enabled | default(false) }}"
+          - "   - Releasarr: {{ media_services.releasarr.enabled | default(false) }}"
+          - "   - Suggestarr: {{ media_services.suggestarr.enabled | default(false) }}"
+          - "   - Huntarr: {{ media_services.huntarr.enabled | default(false) }}"
+          - "   - Kavita: {{ media_services.kavita.enabled | default(false) }}"
+          - "   - Immich: {{ media_services.immich.enabled | default(false) }}"
+          - "   - Lychee: {{ media_services.lychee.enabled | default(false) }}"
+          - "   - Mame: {{ media_services.mame.enabled | default(false) }}"
+          - "   - your_spotify: {{ media_services.your_spotify.enabled | default(false) }}"
       tags: always
 
 
-#  roles:
-#    - roles: pre_checks
-#      tags: ["pre-check-media"]
-#    - role: media-stack
-#      tags: ['media']
-#      
+  roles:
+    - role: pre-checks
+      tags: ["media-pre-checks"]
+    - role: media-stack
+      tags: ['media']
+      
 #  post_tasks:
 #    - name: Confirming services are running
 #      wait_for:

@@ -7,6 +7,7 @@
 
   vars_files:
     - ../vars/versions.yml
+    - ../vars/traefik.yml
 
   pre_tasks:
     - name: Display deployment plan
@@ -14,14 +15,14 @@
         msg:
           - "Deploying core system stack to: {{ inventory_hostname }}"
           - "Services to deploy:"
-          - " - Traefik: {{ services.traefik.enabled | default(true) }}"
-          - " - Portainer: {{ services.portainer.enabled | default(true) }}"
-          - " - Grafana: {{ services.grafana.enabled | default(true) }}"
-          - " - Uptime kuma: {{ services.uptime_kuma.enabled | default(true) }}"
-          - " - Filebrowser: {{ services.filebrowser.enabled | default(true) }}"
-          - " - Crowdsec: {{ services.crowdsec.enabled | default(true) }}"
-          - " - Wireshark: {{ services.wireshark.enabled | default(true) }}"
-          - " - Adguard hoe: {{ services.adguard_home.enabled | default(true) }}"
+          - " - Traefik: {{ core_services.traefik.enabled | default(false) }}"
+          - " - Portainer: {{ core_services.portainer.enabled | default(false) }}"
+          - " - Grafana: {{ core_services.grafana.enabled | default(false) }}"
+          - " - Uptime kuma: {{ core_services.uptime_kuma.enabled | default(false) }}"
+          - " - Filebrowser: {{ core_services.filebrowser.enabled | default(false) }}"
+          - " - Crowdsec: {{ core_services.crowdsec.enabled | default(false) }}"
+          - " - Wireshark: {{ core_services.wireshark.enabled | default(false) }}"
+          - " - Adguard home: {{ core_services.adguard_home.enabled | default(false) }}"
       tags: always
 
   roles:
