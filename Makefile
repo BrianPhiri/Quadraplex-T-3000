@@ -1,8 +1,6 @@
 include makefiles/docker.mk
-include makefiles/media.mk
+include makefiles/base-stack.mk
 include makefiles/user.mk
-include makefiles/utility.mk 
-include makefiles/proxy.mk
 
 # Makefile - Docker Installation Commands
 .PHONY: help install-docker docker-info docker-test docker-cleanup
@@ -33,5 +31,11 @@ deploy-all: ## Deploy all stacks
 	@echo "Deploying complete stack to $(ENV)..."
 	$(MAKE) create-users ENV=$(ENV)
 	$(MAKE) install-docker ENV=$(ENV)
+	$(MAKE) deploy-core ENV=$(ENV)
 	$(MAKE) deploy-media ENV=$(ENV)
+	$(MAKE) deploy-automation ENV=$(ENV)
+	$(MAKE) deploy-productivity ENV=$(ENV)
+	$(MAKE) deploy-ai ENV=$(ENV)
+	$(MAKE) deploy-finance ENV=$(ENV)
+	$(MAKE) deploy-spcialised ENV=$(ENV)
 	
