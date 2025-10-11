@@ -1,10 +1,10 @@
 # Stack definitions (stack_name:path:playbook)
 STACKS := \
 	core:/opt/core-stack:deploy-core.yml \
-	ai:/opt/ai-stack:deploy-ai.yml \
-	automation:/opt/automation-stack:deploy-automation.yml \
 	media:/opt/media-stack:deploy-media.yml \
+	automation:/opt/automation-stack:deploy-automation.yml \
 	productivity:/opt/productivity-stack:deploy-productivity.yml \
+	ai:/opt/ai-stack:deploy-ai.yml \
 	specialised:/opt/specialised-stack:deploy-specialised.yml \
 	finance:/opt/finance-stack:deploy-finance.yml
 
