@@ -1,0 +1,173 @@
+---
+networks:
+  {{ core_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.portainer.enabled %}
+  portainer:
+    image: portainer/portainer-ce:{{ services.portainer.version }}
+    container_name: portainer
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "{{ services.portainer.port }}:9443"
+      - 8000:8000
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.grafana.enabled %}
+  grafana:
+    image: grafana/grafana:{{ services.grafana.version }}
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/grafana:/var/lib/grafana
+      - {{ core_stack.data_path }}/grafana/plugins:/var/lib/grafana/plugins
+      - {{ core_stack.data_path }}/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "{{ services.grafana.port }}:3000"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.uptime_kuma.enabled %}
+  uptime_kuma:
+    image: louislam/uptime-kuma:{{ services.uptime_kuma.version }}
+    container_name: uptime_kuma
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/uptime_kuma:/app/data
+    ports:
+      - "{{ services.uptime_kuma.port }}:3001"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.filebrowser.enabled %}
+  filebrowser:
+    image: filebrowser/filebrowser:{{ services.filebrowser.version }}
+    container_name: filebrowser
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/filebrowser:/srv
+      - {{ core_stack.data_path }}/filebrowser/database:/database
+      - {{ core_stack.config_path }}/filebrowser:/config
+    ports:
+      - "{{ services.filebrowser.port }}:80"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+{% if services.traefik.enabled %}
+  traefik:
+    image: traefik:{{ proxy_stack.services.traefik.version }}
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - {{ core_stack.services.traefik.http }}:80
+      - {{ core_stack.services.traefik.https }}:443
+    environment:
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
+      TRAEFIK_DASHBOARD_CREDENTIALS: ${TRAEFIK_DASHBOARD_CREDENTIALS}
+    env_file: .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - {{ core_stack.config_path }}/traefik/traefik.yml:/traefik.yml:ro
+      - {{ core_stack.config_path }}/traefik/acme.json:/acme.json
+      - {{ core_stack.config_path }}/traefik/config.yml:/config.yml:ro
+    networks:
+      - {{ core_stack.network_name }}
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOST}`)"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_CREDENTIALS}"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`${TRAEFIK_DASHBOARD_HOST}`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=${DOMAIN}"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.${DOMAIN}"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+{% endif %}
+
+
+{% if services.crowdsec.enabled %}
+  crowdsec:
+     image: crowdsecurity/crowdsec:{{ services.crowdsec.version }}
+     restart: always
+     environment:
+       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve"
+       GID: "${GID-1000}"
+     volumes:
+       - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml
+       - {{ core_stack.data_path }}/crowdsec/db:/var/lib/crowdsec/data/
+       - {{ core_stack.config_path }}/crowdsec:/etc/crowdsec/
+     networks:
+        - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.wireshark.enabled %}
+  wireshark:
+    image: lscr.io/linuxserver/wireshark:{{ services.wireshark.version }}
+    container_name: wireshark
+    cap_add:
+      - NET_ADMIN
+    network_mode: host
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.config_path }}/wireshark:/config
+    ports:
+      - {{ services.wireshark.port }}:3001
+    shm_size: "1gb"
+    restart: unless-stopped
+{% endif %}
+
+{% if services.adguard_home.enabled %}
+  adguardhome:
+    image: adguard/adguardhome
+    container_name: adguardhome
+    restart: unless-stopped
+    volumes:
+      - {{ core_stack.data_path }}/adguard_home:/opt/adguardhome/work
+      - {{ core_stack.config_path }}/adguard_home:/opt/adguardhome/conf
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "81:80/tcp"
+      - "8443:443/tcp"
+      - "8443:443/udp"
+      - "3000:3000/tcp"
+      - "853:853/udp"
+    network_mode: host
+{% endif %}
+
+

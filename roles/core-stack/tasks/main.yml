@@ -27,15 +27,30 @@
     modification_time: preserve
     access_time: preserve
 
+- name: Create acquis.yaml file with correct permissions
+  file:
+    path: "{{ core_stack.config_path }}/crowdsec/acquis.yaml
+"
+    state: touch
+    mode: '0600'
+    modification_time: preserve
+    access_time: preserve
+
+
+
 - name: Set core stack-specific variables
   set_fact:
     stack_name: "core-stack"
     stack_config: "{{ core_stack }}"
     stack_services:
-      - plex
-      - sonarr
-      - radarr
-      - prowlarr
+      - traefik
+      - portainer
+      - grafana
+      - uptime_kuma
+      - filebrowser
+      - crowdsec
+      - wireshark
+      - adguard_home
     stack_compose_template: "{{ role_path }}/templates/docker-compose.yml.j2"
 
 - name: Deploy media stack using common docker-stack role
@@ -46,3 +61,5 @@
     stack_config: "{{ stack_config }}"
     stack_services: "{{ stack_services }}"
     stack_compose_template: "{{ stack_compose_template }}"
+
+
