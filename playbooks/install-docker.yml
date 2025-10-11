@@ -1,6 +1,6 @@
 ---
 - name: Install Docker on Target Servers
-  hosts: "{{ target_hosts | default('media_servers') }}"
+  hosts: "{{ target_hosts | default('development') }}"
   become: yes
   gather_facts: yes
   serial: "{{ install_serial | default(1) }}"  # Install one at a time by default

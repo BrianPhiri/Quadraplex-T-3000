@@ -1,0 +1,152 @@
+---
+
+- name: Wait for services to be ready
+  wait_for:
+    port: "{{ item.port }}"
+    host: "127.0.0.1"
+    delay: 5
+    timeout: 300
+    msg: "{{ item.service }} service did not start within 5 minutes"
+  loop:
+    - { service: "Prowlarr", port: "{{ services.prowlarr.port }}" }
+    - { service: "Sonarr", port: "{{ services.sonarr.port }}"}
+    - { service: "Radarr", port: "{{ services.radarr.port }}"}
+    - { service: "Jellyfin", port: "{{ services.jellyfin.port }}"}
+    - { service: "Jellyseerr", port: "{{ services.jellyseerr.port }}"}
+    - { service: "Lidarr", port: "{{ services.lidarr.port }}"}
+    - { service: "Releasarr", port: "{{ services.releasarr.port }}"}
+    - { service: "Suggestarr", port: "{{ services.suggestarr.port }}"}
+    - { service: "Huntarr", port: "{{ services.huntarr.port }}"}
+    - { service: "Bazarr", port: "{{ services.bazarr.port }}"}
+    - { service: "Qbittorrent", port: "{{ services.qbittorrent.port }}"}
+    - { service: "Kavita", port: "{{ services.kavita.port }}"}
+  when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
+
+- name: Check service health endpoints
+  uri:
+    url: "http://127.0.0.1:{{ item.port }}{{ item.health_path | default('') }}"
+    method: GET
+    status_code: [200, 302, 401] 
+    timeout: 30
+  register: health_check
+  retries: 5
+  delay: 10
+  until: health_check.status in [200, 302, 401]
+  loop:
+    - { service: "Prowlarr", port: "{{ services.prowlarr.port }}", health_path: "/" }
+    - { service: "Sonarr", port: "{{ services.sonarr.port }}", health_path: "/" }
+    - { service: "Radarr", port: "{{ services.radarr.port }}", health_path: "/" }
+    - { service: "Jellyfin", port: "{{ services.jellyfin.port }}", health_path: "/" }
+    - { service: "Jellyseerr", port: "{{ services.jellyseerr.port }}", health_path: "/" }
+    - { service: "Lidarr", port: "{{ services.lidarr.port }}", health_path: "/" }
+    - { service: "Releasarr", port: "{{ services.releasarr.port }}", health_path: "/" }
+    - { service: "Suggestarr", port: "{{ services.suggestarr.port }}", health_path: "/" }
+    - { service: "Huntarr", port: "{{ services.huntarr.port }}", health_path: "/" }
+    - { service: "Bazarr", port: "{{ services.bazarr.port }}", health_path: "/" }
+    - { service: "Qbittorrent", port: "{{ services.qbittorrent.port }}", health_path: "/" }
+    - { service: "Kavita", port: "{{ services.kavita.internal_port }}", health_path: "/" }
+  when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
+
+- name: Check Docker container status
+  docker_container_info:
+    name: "{{ item }}"
+  register: container_status
+  loop:
+    - prowlarr
+    - sonarr
+    - radarr
+    - jellyseerr
+    - jellyfin
+    - bazarr
+    - lidarr
+    - releasarr
+    - suggestarr
+    - huntarr
+    - qbittorrent
+    - kavita
+  when: services[item.replace('-', '_')].enabled | default(true)
+
+- name: Verify containers are running
+  assert:
+    that:
+      - item.exists
+      - item.container.State.Status == "running"
+      - item.container.State.Health.Status is undefined or item.container.State.Health.Status == "healthy"
+    fail_msg: "Container {{ item.container.Name }} is not running properly"
+    success_msg: "Container {{ item.container.Name }} is running and healthy"
+  loop: "{{ container_status.results }}"
+  when: item.item is defined and services[item.item.replace('-', '_')].enabled | default(true)
+
+- name: Check Docker network connectivity
+  command: docker exec {{ item.container }} ping -c 1 {{ item.target }}
+  register: network_test
+  changed_when: false
+  failed_when: network_test.rc != 0
+  loop:
+    - { container: "prowlarr", target: "sonarr" }
+    - { container: "prowlarr", target: "radarr" }
+    - { container: "prowlarr", target: "lidarr" }
+    - { container: "jellyseerr", target: "jellyfin" }
+  when: 
+    - services.prowlarr.enabled | default(true)
+    - services.sonarr.enabled | default(true) 
+    - services.radarr.enabled | default(true)
+    - services.jellyseerr.enabled | default(true)
+    - services.jellyfin.enabled | default(true)
+
+- name: Verify data directory permissions
+  stat:
+    path: "{{ media_stack.data_path }}/{{ item }}"
+  register: data_dir_stats
+  loop:
+    - prowlarr
+    - sonarr
+    - radarr
+    - jellyseerr
+    - jellyfin
+    - bazarr
+    - lidarr
+    - releasarr
+    - suggestarr
+    - huntarr
+    - qbittorrent
+    - kavita
+  when: services[item.replace('-', '_')].enabled | default(true)
+
+- name: Check data directory ownership
+  assert:
+    that:
+      - data_dir_stats.results[index].stat.uid == media_stack.user_id | int
+      - data_dir_stats.results[index].stat.gid == media_stack.group_id | int
+    fail_msg: "Data directory {{ item }} has incorrect ownership"
+  loop:
+    - prowlarr
+    - sonarr
+    - radarr
+    - jellyseerr
+    - jellyfin
+    - bazarr
+    - lidarr
+    - releasarr
+    - suggestarr
+    - huntarr
+    - qbittorrent
+    - kavita
+  loop_control:
+    index_var: index
+  when: 
+    - services[item.replace('-', '_')].enabled | default(true)
+    - data_dir_stats.results[index].stat.exists
+
+
+- name: Check systemd service status
+  systemd:
+    name: media-stack
+    state: started
+  register: systemd_status
+
+- name: Verify systemd service is enabled
+  command: systemctl is-enabled media-stack
+  register: systemd_enabled
+  changed_when: false
+  failed_when: systemd_enabled.stdout != "enabled"

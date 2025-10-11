@@ -1,0 +1,23 @@
+---
+- name: Deploy ai stack
+  hosts: "{{ target_hosts | default('ai_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying ai stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - "   - Open web UI: {{ services.openWebUi.enabled | default(true) }}"
+          - "   - Fast whisper: {{ services.faster_whisper.enabled | default(true) }}"
+      tags: always
+
+#  roles:
+#    - role: pre-checks
+#      tags: ["ai-pre-checks"]
+#    - role: ai-stack
+#      tags: ['ai']
+ 

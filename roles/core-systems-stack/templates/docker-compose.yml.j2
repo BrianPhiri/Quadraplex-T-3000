@@ -1,0 +1,78 @@
+---
+networks:
+  {{ core_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.portainer.enabled %}
+  portainer:
+    image: portainer/portainer-ce:{{ services.portainer.version }}
+    container_name: portainer
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "{{ services.portainer.port }}:9443"
+      - 8000:8000
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.grafana.enabled %}
+  grafana:
+    image: grafana/grafana:{{ services.grafana.version }}
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/grafana:/var/lib/grafana
+      - {{ core_stack.data_path }}/grafana/plugins:/var/lib/grafana/plugins
+      - {{ core_stack.data_path }}/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "{{ services.grafana.port }}:3000"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.uptime_kuma.enabled %}
+  uptime_kuma:
+    image: louislam/uptime-kuma:{{ services.uptime_kuma.version }}
+    container_name: uptime_kuma
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/uptime_kuma:/app/data
+    ports:
+      - "{{ services.uptime_kuma.port }}:3001"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
+{% if services.filebrowser.enabled %}
+  filebrowser:
+    image: filebrowser/filebrowser:{{ services.filebrowser.version }}
+    container_name: filebrowser
+    restart: unless-stopped
+    environment:
+      - PUID={{ core_stack.user_id }}
+      - PGID={{ core_stack.group_id }}
+      - TZ={{ core_stack.timezone }}
+    volumes:
+      - {{ core_stack.data_path }}/filebrowser:/srv
+      - {{ core_stack.data_path }}/filebrowser/database:/database
+      - {{ core_stack.config_path }}/filebrowser:/config
+    ports:
+      - "{{ services.filebrowser.port }}:80"
+    networks:
+      - {{ core_stack.network_name }}
+{% endif %}
+
