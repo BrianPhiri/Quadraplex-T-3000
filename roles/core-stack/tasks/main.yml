@@ -5,6 +5,9 @@
     stack_verify_health: true
     stack_role_path: "{{ role_path }}"
 
+
+###
+
 - name: Generate traefik.yml
   template:
     src: traefik.yml.j2
@@ -14,7 +17,7 @@
     mode: '0644'
     backup: yes
 #  notify: restart core stack
-
+#
 - name: Generate config.yml
   template:
     src: config.yml.j2
@@ -23,8 +26,8 @@
     group: "{{ group_id }}"
     mode: '0644'
     backup: yes
-#  notify: restart core stack
-
+##  notify: restart core stack
+#
 - name: Create acme.json file with correct permissions
   file:
     path: "{{ core_stack.config_path }}/traefik/acme.json"
@@ -42,7 +45,9 @@
     modification_time: preserve
     access_time: preserve
 
-- name: Deploy media stack using common docker-stack role
+####
+
+- name: Deploy core stack using common docker-stack role
   include_role:
     name: base-stack
   vars:

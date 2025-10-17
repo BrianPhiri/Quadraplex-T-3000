@@ -8,6 +8,7 @@
   vars_files:
     - ../vars/versions.yml
     - ../vars/traefik.yml
+    - ../vars/traefik-routes.yml
 
   pre_tasks:
     - name: Display deployment plan
