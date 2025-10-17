@@ -1,0 +1,12 @@
+prowlarr:
+  image: lscr.io/linuxserver/prowlarr:{{ services.prowlarr.version }}
+  container_name: prowlarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/prowlarr:/config
+  ports:
+    - "{{ services.prowlarr.port }}:9696"

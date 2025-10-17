@@ -2,11 +2,6 @@
 STACKS := \
 	core:/opt/core-stack:deploy-core.yml \
 	media:/opt/media-stack:deploy-media.yml \
-	automation:/opt/automation-stack:deploy-automation.yml \
-	productivity:/opt/productivity-stack:deploy-productivity.yml \
-	ai:/opt/ai-stack:deploy-ai.yml \
-	specialised:/opt/specialised-stack:deploy-specialised.yml \
-	finance:/opt/finance-stack:deploy-finance.yml
 
 define make-deploy-target
 deploy-$(1): ## Deploy $(1) stack

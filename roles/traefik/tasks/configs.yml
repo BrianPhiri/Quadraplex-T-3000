@@ -1,0 +1,56 @@
+---
+- name: Generate main docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ proxy_stack.base_path }}/docker-compose.yml"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0644'
+    backup: yes
+  notify: restart proxy stack
+
+- name: Generate environment file
+  template:
+    src: .env.j2
+    dest: "{{ proxy_stack.base_path }}/.env"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0600'
+    backup: yes
+  notify: restart proxy stack
+
+- name: Generate traefik.yml
+  template:
+    src: traefik.yml.j2
+    dest: "{{ proxy_stack.config_path }}/traefik/traefik.yml"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    mode: '0644'
+    backup: yes
+  notify: restart proxy stack
+
+- name: Generate config.yml
+  template:
+    src: config.yml.j2
+    dest: "{{ proxy_stack.config_path }}/traefik/config.yml"
+    owner: "{{ user_id }}"
+    group: "{{ group_id }}"
+    mode: '0644'
+    backup: yes
+  notify: restart proxy stack
+
+- name: Create acme.json file with correct permissions
+  file:
+    path: "{{ proxy_stack.config_path }}/traefik/acme.json"
+    state: touch
+    mode: '0600'
+    modification_time: preserve
+    access_time: preserve
+  notify: restart proxy stack
+
+- name: Set proper ownership for all config files
+  file:
+    path: "{{ proxy_stack.config_path }}"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
+    recurse: yes

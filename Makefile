@@ -1,6 +1,7 @@
 include makefiles/docker.mk
 include makefiles/base-stack.mk
 include makefiles/user.mk
+include makefiles/proxy.mk
 
 # Makefile - Docker Installation Commands
 .PHONY: help install-docker docker-info docker-test docker-cleanup
@@ -27,15 +28,9 @@ test-connection: ## Test connection to host
 	ansible $(ENV) $(ANSIBLE_OPTS) -m ping
 	
 # Full Stack Deployment
-deploy-all: ## Deploy all stacks
+initial-deploy:
 	@echo "Deploying complete stack to $(ENV)..."
 	$(MAKE) create-users ENV=$(ENV)
 	$(MAKE) install-docker ENV=$(ENV)
-	$(MAKE) deploy-core ENV=$(ENV)
-	$(MAKE) deploy-media ENV=$(ENV)
-	$(MAKE) deploy-automation ENV=$(ENV)
-	$(MAKE) deploy-productivity ENV=$(ENV)
-	$(MAKE) deploy-ai ENV=$(ENV)
-	$(MAKE) deploy-finance ENV=$(ENV)
-	$(MAKE) deploy-spcialised ENV=$(ENV)
+	$(MAKE) deploy-proxy ENV=$(ENV)
 	

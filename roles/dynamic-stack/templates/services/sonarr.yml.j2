@@ -1,0 +1,14 @@
+sonarr:
+  image: lscr.io/linuxserver/sonarr:{{ services.sonarr.version }}
+  container_name: sonarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/sonarr:/config
+    - {{ stack_config.media_path }}/tv:/tv
+    - {{ stack_config.downloads_path }}:/downloads
+  ports:
+    - "{{ services.sonarr.port }}:8989"

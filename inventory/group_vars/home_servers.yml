@@ -1,0 +1,38 @@
+---
+# core_systems stack configuration
+proxy_stack_base_path: "/opt/proxy"
+proxy_stack:
+  # Paths
+  base_path: "{{ proxy_stack_base_path }}"
+  config_path: "{{ proxy_stack_base_path }}/configs"
+  data_path: "{{ proxy_stack_base_path }}/data"
+
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+  
+  # Network
+  network_name: "proxy-net"
+  
+  # Container versions (can be overridden per environment)
+  versions:
+    traefik: "3.5.3"
+    
+# Service configuration
+proxy_services:
+  traefik:
+    enabled: true 
+    https: 443
+    http: 82
+    version: "{{ proxy_stack.versions.traefik | default('latest') }}"
+  
+# Cloudflare credentials
+cloudflare_api_token: "{{ cloudflare_token }}"
+
+# Traefik dashboard credentials (htpasswd format)
+traefik_dashboard_credentials: "{{ dashboard.credentials }}"
+traefik_dashboard_host: "{{ dashboard.host }}"
+
+# Traefik configuration
+traefik_acme_email: "{{ acme_email }}"
+traefik_debug: false

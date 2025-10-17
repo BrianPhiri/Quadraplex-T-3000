@@ -8,83 +8,13 @@
   vars_files:
     - ../vars/versions.yml
 
-  pre_tasks:
-    - name: Display deployment plan
-      debug:
-        msg:
-          - "Deploying media stack to: {{ inventory_hostname }}"
-          - "Services to deploy:"
-          - "   - Jellyfin: {{ media_services.jellyfin.enabled | default(true) }}"
-          - "   - Prowlarr: {{ media_services.prowlarr.enabled | default(false) }}"
-          - "   - Sonarr: {{ media_services.sonarr.enabled | default(false) }}"
-          - "   - Radarr: {{ media_services.radarr.enabled | default(false) }}"
-          - "   - Lidarr: {{ media_services.lidarr.enabled | default(false) }}"
-          - "   - Qbittorrent: {{ media_services.qbittorrent.enabled | default(false) }}"
-          - "   - Jellyseerr: {{ media_services.jellyseerr.enabled | default(false) }}"
-          - "   - Bazarr: {{ media_services.bazarr.enabled | default(false) }}"
-          - "   - Releasarr: {{ media_services.releasarr.enabled | default(false) }}"
-          - "   - Suggestarr: {{ media_services.suggestarr.enabled | default(false) }}"
-          - "   - Huntarr: {{ media_services.huntarr.enabled | default(false) }}"
-          - "   - Kavita: {{ media_services.kavita.enabled | default(false) }}"
-          - "   - Immich: {{ media_services.immich.enabled | default(false) }}"
-          - "   - Lychee: {{ media_services.lychee.enabled | default(false) }}"
-          - "   - Mame: {{ media_services.mame.enabled | default(false) }}"
-          - "   - your_spotify: {{ media_services.your_spotify.enabled | default(false) }}"
-      tags: always
-
-
+  vars:
+    stack_name: "media-stack"
+    services: "{{ media_services }}"
+    stack: "{{ media_stack }}"
+ 
   roles:
     - role: pre-checks
       tags: ["media-pre-checks"]
-    - role: media-stack
+    - role: dynamic-stack
       tags: ['media']
-      
-#  post_tasks:
-#    - name: Confirming services are running
-#      wait_for:
-#        port: "{{ item.port }}"
-#        host: "{{ ansible_host }}"
-#        delay: 10
-#        timeout: 300
-#      loop:
-#        - { service: "jellyfin", port: "{{ services.jellyfin.port }}" }
-#        - { service: "prowlarr", port: "{{ services.prowlarr.port }}" }
-#        - { service: "sonarr", port: "{{ services.sonarr.port }}" }
-#        - { service: "radarr", port: "{{ services.radarr.port }}" }
-#        - { service: "lidarr", port: "{{ services.lidarr.port }}" }
-#        - { service: "qbittorrent", port: "{{ services.qbittorrent.port }}" }
-#        - { service: "jellyseerr", port: "{{ services.jellyseerr.port }}" }
-#        - { service: "bazarr", port: "{{ services.bazarr.port }}" }
-#        - { service: "releasarr", port: "{{ services.releasarr.port }}" }
-#        - { service: "suggestarr", port: "{{ services.suggestarr.port }}" }
-#        - { service: "huntarr", port: "{{ services.huntarr.port }}" }
-#        - { service: "kavita", port: "{{ services.kavita.port }}" }
-#        - { service: "immich", port: "{{ services.immich.port }}" }
-#        - { service: "lychee", port: "{{ services.lychee.port }}" }
-#        - { service: "mame", port: "{{ services.mame.port }}" }
-#        - { service: "your_spotify", port: "{{ services.your_spotify.port }}" }
-#      when: services[item.service].enabled | default(true)
-#      
-#    - name: Display access information
-#      debug:
-#        msg:
-#          - "Media Stack deployed successfully!"
-#          - ""
-#          - "Service URLs:"
-#          - "  Jellyfin:   http://{{ ansible_host }}:{{ services.jellyseerr.port }}"
-#          - "  Prowlarr:   http://{{ ansible_host }}:{{ services.prowlarr.port }}"
-#          - "  Sonarr:   http://{{ ansible_host }}:{{ services.sonarr.port }}"
-#          - "  Radarr:   http://{{ ansible_host }}:{{ services.radarr.port }}"
-#          - "  Lidarr:   http://{{ ansible_host }}:{{ services.lidarr.port }}"
-#          - "  Qbittorrent:   http://{{ ansible_host }}:{{ services.qbittorrent.port }}"
-#          - "  Jellyseerr:   http://{{ ansible_host }}:{{ services.jellyseerr.port }}"
-#          - "  Bazarr:   http://{{ ansible_host }}:{{ services.bazarr.port }}"
-#          - "  Releasarr:   http://{{ ansible_host }}:{{ services.releasarr.port }}"
-#          - "  Suggestarr:   http://{{ ansible_host }}:{{ services.suggestarr.port }}"
-#          - "  Huntarr:   http://{{ ansible_host }}:{{ services.huntarr.port }}"
-#          - "  Kavita:   http://{{ ansible_host }}:{{ services.kavita.port }}"
-#          - "  Immich:   http://{{ ansible_host }}:{{ services.immich.port }}"
-#          - "  Lychee:   http://{{ ansible_host }}:{{ services.lychee.port }}"
-#          - "  Mame:   http://{{ ansible_host }}:{{ services.mame.port }}"
-#          - "  your_spotify:   http://{{ ansible_host }}:{{ services.your_spotifyport }}"
-#      tags: always

@@ -1,0 +1,17 @@
+adguardhome:
+  image: adguard/adguardhome
+  container_name: adguardhome
+  restart: unless-stopped
+  volumes:
+    - {{ stack_config.data_path }}/adguard_home:/opt/adguardhome/work
+    - {{ stack_config.config_path }}/adguard_home:/opt/adguardhome/conf
+  ports:
+    - "53:53/tcp"
+    - "53:53/udp"
+    - "{{ services.adguard_home.http }}:80/tcp"
+    - "{{ services.adguard_home.https }}:443/tcp"
+    - "{{ services.adguard_home.https }}:443/udp"
+    - "3000:3000/tcp"
+    - "853:853/udp"
+  network_mode: host
+

@@ -1,0 +1,14 @@
+jellyseerr:
+  image: fallenbagel/jellyseerr:{{ services.jellyseerr.version }}
+  container_name: jellyseerr
+  restart: unless-stopped
+  environment:
+    - LOG_LEVEL=info
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/jellyseerr:/app/config
+  ports:
+    - "{{ services.jellyseerr.port }}:5055"
+  networks:
+    - {{ stack_config.network_name }}
+ endif %}
