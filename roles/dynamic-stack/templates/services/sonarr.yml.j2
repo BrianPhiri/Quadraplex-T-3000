@@ -12,3 +12,10 @@ sonarr:
     - {{ stack_config.downloads_path }}:/downloads
   ports:
     - "{{ services.sonarr.port }}:8989"
+{% if services.sonarr.networks is defined %}
+  networks:
+{% for network in services.sonarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

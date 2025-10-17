@@ -9,6 +9,10 @@ jellyseerr:
     - {{ stack_config.config_path }}/jellyseerr:/app/config
   ports:
     - "{{ services.jellyseerr.port }}:5055"
+{% if services.jellyseerr.networks is defined %}
   networks:
-    - {{ stack_config.network_name }}
- endif %}
+{% for network in services.jellyseerr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

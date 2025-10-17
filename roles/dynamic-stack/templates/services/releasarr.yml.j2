@@ -1,0 +1,21 @@
+releasarr:
+  image: makario1337/releasarr:{{ services.releasarr.version }}
+  container_name: releasarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/releasarr:/config
+    - {{ stack_config.data_path}}/releasarr/Library:/library
+    - {{ stack_config.data_path}}/releasarr/logs:/logs
+  ports:
+    - "{{ services.releasarr.port }}:1337"
+{% if services.releasarr.networks is defined %}
+  networks:
+{% for network in services.releasarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

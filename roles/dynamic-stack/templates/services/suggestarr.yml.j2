@@ -1,0 +1,19 @@
+suggestarr:
+  image: ciuse99/suggestarr:{{ services.suggestarr.version }}
+  container_name: suggestarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/suggestarr:/app/config/config_files
+  ports:
+    - "{{ services.suggestarr.port }}:5000"
+{% if services.suggestarr.networks is defined %}
+  networks:
+{% for network in services.suggestarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

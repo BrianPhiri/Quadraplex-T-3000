@@ -18,14 +18,25 @@ media_stack:
   
   # Domain configuration
   domain: "{{ media_domain | default('localhost') }}"
-  enable_ssl: false
+  enable_ssl: true
  
   # Container versions (can be overridden per environment)
   versions:
     jellyfin: "latest"
     jellyseerr: "latest"
-    prowlarr: "latest"
     sonarr: "latest"
+    radarr: "latest"
+    lidarr: "latest"
+    prowlarr: "latest"
+    bazarr: "latest"
+    qbittorrent: "latest"
+    releasarr: "latest"
+    suggestarr: "latest"
+    kavita: "latest"
+    immich: ""
+    lychee: ""
+    mame: ""
+    your_spotify: ""
 
 # Service configuration
 media_services:
@@ -33,8 +44,93 @@ media_services:
     enabled: true
     port: 9696
     version: "{{ media_stack.versions.prowlarr | default('latest') }}"
+    networks:
+      - media
   sonarr:
     enabled: true
     port: 8989
     version: "{{ media_stack.versions.sonarr | default('latest') }}"
-  
+    networks:
+      - media
+  radarr:
+    enabled: true
+    port: 7878
+    version: "{{ media_stack.versions.radarr | default('latest') }}"
+    networks:
+      - media
+  jellyseerr:
+    enabled: true
+    port: 5055
+    version: "{{ media_stack.versions.jellyseerr | default('latest') }}"
+    networks:
+      - media
+  jellyfin:
+    enabled: true
+    port: 8096
+    version: "{{ media_stack.versions.jellyfin | default('latest') }}"
+    networks:
+      - media
+  bazarr:
+    enabled: true
+    port: 6767
+    version: "{{ media_stack.versions.bazarr | default('latest') }}"
+    networks:
+      - media
+  lidarr:
+    enabled: true
+    port: 8686
+    version: "{{ media_stack.versions.lidarr | default('latest') }}"
+    networks:
+      - media
+  releasarr:
+    enabled: true
+    port: 1337
+    version: "{{ media_stack.versions.releasarr | default('latest') }}"
+    networks:
+      - media
+  huntarr:
+    enabled: true
+    port: 9705
+    version: "{{ media_stack.versions.huntarr | default('latest') }}"
+    networks:
+      - media
+  suggestarr:
+    enabled: true
+    port: 5000
+    version: "{{ media_stack.versions.suggestarr | default('latest') }}"
+    networks:
+      - media
+  qbittorrent:
+    enabled: true
+    port: 8080
+    peer_port: 6881
+    version: "{{ media_stack.versions.qbittorrent | default('latest') }}"
+    networks:
+      - media
+  kavita:
+    enabled: true
+    port: 5001
+    internal_port: 5000
+    version: "{{ media_stack.versions.kavita | default('latest') }}"
+  immich:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.immich | default('latest') }}"
+  lychee:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.lychee | default('latest') }}"
+  mame:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.mame | default('latest') }}"
+  your_spotify:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.your_spotify | default('latest') }}"
+
+
+networks:
+  media:
+    driver: bridge
+
