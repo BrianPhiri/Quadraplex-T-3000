@@ -1,0 +1,27 @@
+---
+- name: Generate main docker-compose.yml
+  template:
+    src: "{{ stack_compose_template }}"
+    dest: "{{ stack_config.base_path }}/docker-compose.yml"
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0644'
+    backup: yes
+  notify: "restart {{ stack_name }}"
+
+- name: Generate environment file
+  template:
+    src: .env.j2
+    dest: "{{ stack_config.base_path }}/.env"
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0600'
+    backup: yes
+  notify: "restart {{ stack_name }}"
+
+- name: Set proper ownership for all config files
+  file:
+    path: "{{ stack_config.config_path }}"
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    recurse: yes

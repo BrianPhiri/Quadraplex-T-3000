@@ -1,0 +1,22 @@
+# This role expects these variables to be passed:
+# - stack_name: Name of the stack (e.g., "productivity-stack")
+# - stack_config: Dict with base_path, config_path, data_path, user_id, group_id, network_name
+# - stack_services: List of service names (e.g., ["homeassistant", "n8n"])
+# - services: Dict of service configs with .enabled and .port
+#
+#
+- name: Include directory creation tasks
+  include_tasks: directories.yml
+  tags: ['directories']
+
+- name: Include configuration tasks
+  include_tasks: configs.yml
+  tags: ['configs']
+
+- name: Include docker-compose deployment
+  include_tasks: docker-compose.yml
+  tags: ['deploy']
+
+- name: Include verification tasks
+  include_tasks: verify.yml
+  tags: ['verify']

@@ -1,0 +1,50 @@
+---
+- name: Ensure Docker is installed and running
+  service:
+    name: docker 
+    state: started
+  register: docker_status
+
+- name: Verify Docker Compose is available
+  command: docker compose version
+  register: compose_check
+  changed_when: false
+  failed_when: compose_check.rc != 0
+
+- name: Ensure python3-venv package is present
+  package:
+    name: python3-venv
+    state: present
+  become: yes
+
+- name: Create Python virtual environment
+  command:
+    cmd: python3 -m venv /opt/ansible-venv
+    creates: /opt/ansible-venv/bin/activate
+  become: yes
+
+- name: Upgrade pip and install essential packages in venv
+  command:
+    cmd: /opt/ansible-venv/bin/python -m pip install --upgrade pip setuptools wheel packaging requests
+  become: yes
+  args:
+    creates: /opt/ansible-venv/lib/python*/site-packages/packaging
+
+- name: Install required Python packages in virtualenv
+  pip:
+    name:
+      - pip
+      - setuptools
+      - requests
+    virtualenv: /opt/ansible-venv
+    state: latest
+  become: yes
+
+- name: Show active Python interpreter
+  ansible.builtin.command: "{{ ansible_python_interpreter }} --version"
+  register: py_ver
+
+- debug:
+    var: py_ver.stdout
+
+

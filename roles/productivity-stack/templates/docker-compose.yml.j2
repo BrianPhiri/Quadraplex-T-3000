@@ -1,0 +1,22 @@
+---
+networks:
+  {{ productivity_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.homeassistant.enabled %}
+  homeassistant:
+    image: lscr.io/linuxserver/homeassistant:{{ services.homeassistant.version }}
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID={{ productivity_stack.user_id }}
+      - PGID={{ productivity_stack.group_id }}
+      - TZ={{ productivity_stack.timezone }}
+    volumes:
+      - {{ ai_stack.config_path }}/homeassistant:/config
+    ports:
+      - "{{ services.homeassistant.port }}:8123"
+{% endif %}
+

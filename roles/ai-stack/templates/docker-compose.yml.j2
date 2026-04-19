@@ -1,0 +1,44 @@
+---
+networks:
+  {{ ai_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.openWebUi.enabled %}
+  openWebUi:
+    image: ghcr.io/open-webui/open-webui:{{ services.openWebUi.version }}
+    container_name: openWebUi
+    restart: unless-stopped
+    environment:
+      - PUID={{ ai_stack.user_id }}
+      - PGID={{ ai_stack.group_id }}
+      - TZ={{ ai_stack.timezone }}
+      - OLLAMA_BASE_URL={{ services.openWebUi.ollama_base_url }}
+    volumes:
+      - {{ ai_stack.data_path }}/openWebUi:/app/backend/data
+    ports:
+      - "{{ services.openWebUi.port }}:8080"
+    networks:
+      - {{ ai_stack.network_name }}
+{% endif %}
+
+{% if services.faster_whisper.enabled %}
+  faster_whisper:
+    image: lscr.io/linuxserver/faster-whisper:{{ services.faster_whisper.version }}
+    container_name: faster_whisper
+    restart: unless-stopped
+    environment:
+      - PUID={{ ai_stack.user_id }}
+      - PGID={{ ai_stack.group_id }}
+      - TZ={{ ai_stack.timezone }}
+      - WHISPER_MODEL=tiny-int8
+      - WHISPER_BEAM=1
+      - WHISPER_LANG=en
+    volumes:
+      - {{ ai_stack.config_path }}/faster_whisper:/config
+    ports:
+      - "{{ services.faster_whisper.port }}:10300"
+    networks:
+      - {{ ai_stack.network_name }}
+{% endif %}
+

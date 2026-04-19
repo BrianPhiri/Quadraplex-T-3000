@@ -1,0 +1,21 @@
+---
+- name: Deploy fincance stack
+  hosts: "{{ target_hosts | default('fincance_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying fincance stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - "   - Akauntant: {{ services.akauntant.enabled | default(true) }}"
+      tags: always
+
+#  roles:
+#    - role: pre-checks
+#      tags: ["finance-pre-check"]
+#    - role: fincance-stack
+#      tags: ['fincance']

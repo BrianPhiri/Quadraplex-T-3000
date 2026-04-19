@@ -1,0 +1,103 @@
+---
+networks:
+  {{ automation_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.homeassistant.enabled %}
+  homeassistant:
+    image: lscr.io/linuxserver/homeassistant:{{ services.homeassistant.version }}
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID={{ automation_stack.user_id }}
+      - PGID={{ automation_stack.group_id }}
+      - TZ={{ automation_stack.timezone }}
+    volumes:
+      - {{ ai_stack.config_path }}/homeassistant:/config
+    ports:
+      - "{{ services.homeassistant.port }}:8123"
+{% endif %}
+{% if services.n8n.enabled %}
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:{{ services.n8n.version }}
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - PUID={{ automation_stack.user_id }}
+      - PGID={{ automation_stack.group_id }}
+      - TZ={{ automation_stack.timezone }}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_NON_ROOT_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
+    volumes:
+      - {{ automation_stack.data_path }}/n8n:/home/node/.n8n
+    ports:
+      - "{{ services.n8n.port }}:5678"
+    networks:
+      - {{ automation_stack.network_name }}
+    links:
+      - n8n-postgres
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+
+  n8n-postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - POSTGRES_NON_ROOT_USER
+      - POSTGRES_NON_ROOT_PASSWORD
+    volumes:
+      - {{ automation_stack.data_path }}/n8n/db/db_storage:/var/lib/postgresql/data
+      - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+{% endif %}
+
+{% if services.gotify.enabled %}
+  gotify:
+    image: gotify/server:{{ services.gotify.version }}
+    container_name: gotify
+    restart: unless-stopped
+    environment:
+      - PUID={{ automation_stack.user_id }}
+      - PGID={{ automation_stack.group_id }}
+      - TZ={{ automation_stack.timezone }}
+    volumes:
+      - {{ automation_stack.data_path }}/gotify:/data
+    ports:
+      - "{{ services.gotify.http }}:80"
+      - "{{ services.gotify.https }}:443"
+    networks:
+      - {{ automation_stack.network_name }}
+{% endif %}
+
+{% if services.apprise_api.enabled %}
+  apprise_api:
+    image: lscr.io/linuxserver/apprise-api:{{ services.apprise_api.version }}
+    container_name: apprise_api
+    restart: unless-stopped
+    environment:
+      - PUID={{ automation_stack.user_id }}
+      - PGID={{ automation_stack.group_id }}
+      - TZ={{ automation_stack.timezone }}
+    volumes:
+      - {{ automation_stack.data_path }}/apprise_api/attachments:/attachments
+      - {{ automation_stack.config_path }}/apprise_api:/config
+    ports:
+      - "{{ services.apprise_api.http }}:8080"
+    networks:
+      - {{ automation_stack.network_name }}
+{% endif %}
+

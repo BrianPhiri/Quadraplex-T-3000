@@ -1,4 +1,4 @@
----
+-e-
 - name: Include directory creation tasks
   include_tasks: directories.yml
   tags: ['media', 'directories']

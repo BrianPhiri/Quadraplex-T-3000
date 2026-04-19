@@ -1,0 +1,24 @@
+---
+- name: Deploy specialised stack
+  hosts: "{{ target_hosts | default('specialised_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying specialised stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - "   - Browserless: {{ services.browserless.enabled | default(true) }}"
+          - "   - Metatrader: {{ services.metatrader.enabled | default(true) }}"
+      tags: always
+
+#  roles:
+#    - role: pre-checks
+#      tags: ["specialised-pre-checks"]
+#    - role: specialised-stack
+#      tags: ['specialised']
+      
+

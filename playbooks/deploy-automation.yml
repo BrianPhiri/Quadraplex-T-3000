@@ -1,0 +1,25 @@
+---
+- name: Deploy automation stack
+  hosts: "{{ target_hosts | default('automation_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying automation stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - "   - Home assistant: {{ services.homeassistant.enabled | default(true) }}"
+          - "   - n8n: {{ services.n8n.enabled | default(true) }}"
+          - "   - Gotify: {{ services.gotify.enabled | default(true) }}"
+          - "   - Apprise API: {{ services.apprise_api.enabled | default(true) }}"
+      tags: always
+  
+#  roles:
+#    - role: pre-checks
+#      tags: ['automation-pre-checks']
+#     - role: automation-stack
+#      tags: ['automation']
+

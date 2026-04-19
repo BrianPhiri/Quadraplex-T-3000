@@ -1,0 +1,48 @@
+---
+- name: Create stack base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0755'
+  loop:
+    - "{{ stack_config.base_path }}"
+    - "{{ stack_config.config_path }}"
+    - "{{ stack_config.data_path }}"
+
+- name: Create service-specific config directories
+  file:
+    path: "{{ stack_config.config_path }}/{{ item }}"
+    state: directory
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0755'
+  loop: "{{ stack_services }}"
+  when: services[item].enabled | default(true)
+
+- name: Create service-specific data directories
+  file:
+    path: "{{ stack_config.data_path }}/{{ item }}"
+    state: directory
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0755'
+  loop: "{{ stack_services }}"
+  when: services[item].enabled | default(true)
+
+- name: Set proper permissions for data directories
+  file:
+    path: "{{ stack_config.data_path }}"
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Create backup directory
+  file:
+    path: "{{ stack_config.base_path }}/backups"
+    state: directory
+    owner: "{{ stack_config.user_id }}"
+    group: "{{ stack_config.group_id }}"
+    mode: '0755'

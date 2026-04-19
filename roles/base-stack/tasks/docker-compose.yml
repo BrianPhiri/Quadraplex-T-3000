@@ -1,0 +1,70 @@
+---
+
+- name: Create Docker network for media stack
+  docker_network:
+    name: "{{ media_stack.network_name }}"
+    state: present
+
+- name: Pull Docker images for media stack
+  docker_image:
+    name: "{{ item.image }}"
+    tag: "{{ item.version }}"
+    source: pull
+    state: present
+  loop:
+    - { image: "lscr.io/linuxserver/prowlarr", version: "{{ services.prowlarr.version }}" }
+  when: services[item.image.split('/')[1].replace('-', '_')].enabled | default(true)
+  register: image_pull_result
+
+- name: Display image pull results
+  debug:
+    msg: "Pulled {{ item.item.image }}:{{ item.item.version }}"
+  loop: "{{ image_pull_result.results }}"
+  when: item.changed
+
+- name: Stop existing media stack (if running)
+  community.docker.docker_compose_v2:
+    project_src: "{{ media_stack.base_path }}"
+    state: absent
+  ignore_errors: yes
+  tags: ['never', 'force-restart']
+
+- name: Start media stack with docker-compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ media_stack.base_path }}"
+    build: never
+    state: present
+    pull: missing
+    remove_orphans: yes
+  register: compose_result
+
+- name: Display docker-compose results
+  debug:
+    var: compose_result.services
+  when: compose_result.changed
+
+- name: Ensure all enabled services are running
+  docker_container_info:
+    name: "{{ item.key }}"
+  register: container_info
+  loop: "{{ services | dict2items }}"
+  when: item.value.enabled | default(false)
+  failed_when: 
+    - container_info.exists
+    - container_info.container.State.Status != "running"
+
+- name: Create systemd service for media stack
+  template:
+    src: systemd/media-stack.service.j2
+    dest: /etc/systemd/system/media-stack.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - enable media stack service
+
+- name: Start and enable media stack service
+  systemd:
+    name: media-stack
+    state: started
+    enabled: yes
+    daemon_reload: yes
