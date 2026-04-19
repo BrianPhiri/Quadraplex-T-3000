@@ -17,6 +17,12 @@ group_id: 1000
 
 timezone: "Africa/Nairobi"
 
-domain: "brianphiri.digital"
+custom_dns: "100.80.220.126"
 
+default_domain: "example.com"
+default_subdomain: "traefik"
+domain_final: "{{ my_domain | default(default_domain) }}"
+subdomain_final: "{{ subdomain | default(default_subdomain) }}"
+domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}" 
 
+netbird_setup_key: "{{ vault_netbird_setup_key }}"
