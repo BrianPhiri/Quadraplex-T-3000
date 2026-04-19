@@ -1,0 +1,67 @@
+---
+- name: Create media stack base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ media_stack.user_id }}"
+    group: "{{ media_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - "{{ media_stack.base_path }}"
+    - "{{ media_stack.config_path }}"
+    - "{{ media_stack.data_path }}"
+
+- name: Create service-specific config directories
+  file:
+    path: "{{ media_stack.config_path }}/{{ item }}"
+    state: directory
+    owner: "{{ media_stack.user_id }}"
+    group: "{{ media_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - prowlarr
+    - releasarr
+    - qbittorrent
+    - bazarr
+    - lidarr
+    - suggestarr
+    - kavita
+  when: services[item.split('/')[0]].enabled | default(true)
+
+- name: Create service-specific data directories
+  file:
+    path: "{{ media_stack.data_path }}/{{ item }}"
+    state: directory
+    owner: "{{ media_stack.user_id }}"
+    group: "{{ media_stack.group_id }}"
+    mode: '0755'
+  loop:
+    - prowlarr
+    - sonarr
+    - radarr
+    - jellyseerr
+    - jellyfin
+    - bazarr
+    - lidarr
+    - releasarr
+    - suggestarr
+    - huntarr
+    - qbittorrent
+    - kavita
+  when: services[item.split('/')[0]].enabled | default(true)
+
+- name: Set proper permissions for data directories
+  file:
+    path: "{{ media_stack.data_path }}"
+    owner: "{{ media_stack.user_id }}"
+    group: "{{ media_stack.group_id }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Create backup directory
+  file:
+    path: "{{ media_stack.base_path }}/backups"
+    state: directory
+    owner: "{{ media_stack.user_id }}"
+    group: "{{ media_stack.group_id }}"
+    mode: '0755'

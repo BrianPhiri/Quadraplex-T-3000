@@ -1,0 +1,119 @@
+---
+- name: Deploy Media stack
+  hosts: "{{ target_hosts | default('media_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  vars_files:
+    - ../vars/versions.yml
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying media stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - "   - Jellyfin: {{ services.jellyfin.enabled | default(true) }}"
+          - "   - Prowlarr: {{ services.prowlarr.enabled | default(false) }}"
+          - "   - Sonarr: {{ services.sonarr.enabled | default(false) }}"
+          - "   - Radarr: {{ services.radarr.enabled | default(false) }}"
+          - "   - Lidarr: {{ services.lidarr.enabled | default(false) }}"
+          - "   - Qbittorrent: {{ services.qbittorrent.enabled | default(false) }}"
+          - "   - Jellyseerr: {{ services.jellyseerr.enabled | default(false) }}"
+          - "   - Bazarr: {{ services.bazarr.enabled | default(false) }}"
+          - "   - Releasarr: {{ services.releasarr.enabled | default(false) }}"
+          - "   - Suggestarr: {{ services.suggestarr.enabled | default(false) }}"
+          - "   - Huntarr: {{ services.huntarr.enabled | default(false) }}"
+          - "   - Kavita: {{ services.kavita.enabled | default(false) }}"
+      tags: always
+
+    - name: Ensure Docker is installed and running
+      service:
+        name: docker 
+        state: started
+      register: docker_status
+
+    - name: Verify Docker Compose is available
+      command: docker compose version
+      register: compose_check
+      changed_when: false
+      failed_when: compose_check.rc != 0
+    
+    - name: Ensure python3-venv package is present
+      package:
+        name: python3-venv
+        state: present
+      become: yes
+   
+    - name: Create Python virtual environment
+      command:
+        cmd: python3 -m venv /opt/ansible-venv
+        creates: /opt/ansible-venv/bin/activate
+      become: yes
+
+    - name: Upgrade pip and install essential packages in venv
+      command:
+        cmd: /opt/ansible-venv/bin/python -m pip install --upgrade pip setuptools wheel packaging requests
+      become: yes
+      args:
+        creates: /opt/ansible-venv/lib/python*/site-packages/packaging
+    
+    - name: Install required Python packages in virtualenv
+      pip:
+        name:
+          - pip
+          - setuptools
+          - requests
+        virtualenv: /opt/ansible-venv
+        state: latest
+      become: yes
+
+  roles:
+    - role: media-stack
+      tags: ['media']
+      
+  post_tasks:
+    - name: Confirming services are running
+      wait_for:
+        port: "{{ item.port }}"
+        host: "{{ ansible_host }}"
+        delay: 10
+        timeout: 300
+      loop:
+        - { service: "jellyfin", port: "{{ services.jellyfin.port }}" }
+        - { service: "prowlarr", port: "{{ services.prowlarr.port }}" }
+        - { service: "sonarr", port: "{{ services.sonarr.port }}" }
+        - { service: "radarr", port: "{{ services.radarr.port }}" }
+        - { service: "lidarr", port: "{{ services.lidarr.port }}" }
+        - { service: "qbittorrent", port: "{{ services.qbittorrent.port }}" }
+        - { service: "jellyseerr", port: "{{ services.jellyseerr.port }}" }
+        - { service: "bazarr", port: "{{ services.bazarr.port }}" }
+        - { service: "releasarr", port: "{{ services.releasarr.port }}" }
+        - { service: "suggestarr", port: "{{ services.suggestarr.port }}" }
+        - { service: "huntarr", port: "{{ services.huntarr.port }}" }
+        - { service: "kavita", port: "{{ services.kavita.port }}" }
+      when: services[item.service].enabled | default(true)
+      
+    - name: Display access information
+      debug:
+        msg:
+          - "Media Stack deployed successfully!"
+          - ""
+          - "Service URLs:"
+          - "  Jellyfin:   http://{{ ansible_host }}:{{ services.jellyseerr.port }}"
+          - "  Prowlarr:   http://{{ ansible_host }}:{{ services.prowlarr.port }}"
+          - "  Sonarr:   http://{{ ansible_host }}:{{ services.sonarr.port }}"
+          - "  Radarr:   http://{{ ansible_host }}:{{ services.radarr.port }}"
+          - "  Lidarr:   http://{{ ansible_host }}:{{ services.lidarr.port }}"
+          - "  Qbittorrent:   http://{{ ansible_host }}:{{ services.qbittorrent.port }}"
+          - "  Jellyseerr:   http://{{ ansible_host }}:{{ services.jellyseerr.port }}"
+          - "  Bazarr:   http://{{ ansible_host }}:{{ services.bazarr.port }}"
+          - "  Releasarr:   http://{{ ansible_host }}:{{ services.releasarr.port }}"
+          - "  Suggestarr:   http://{{ ansible_host }}:{{ services.suggestarr.port }}"
+          - "  Huntarr:   http://{{ ansible_host }}:{{ services.huntarr.port }}"
+          - "  Kavita:   http://{{ ansible_host }}:{{ services.kavita.port }}"
+          - ""
+          - "Next steps:"
+          - "  1. Add indexes to Prowlarr"
+      tags: always
