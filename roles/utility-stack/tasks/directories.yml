@@ -19,7 +19,8 @@
     group: "{{ utility_stack.group_id }}"
     mode: '0755'
   loop:
-    - portainer
+    - filebrowser
+    - grafana
   when: services[item.split('/')[0]].enabled | default(true)
 
 - name: Create service-specific data directories
@@ -31,6 +32,8 @@
     mode: '0755'
   loop:
     - portainer
+    - grafana
+    - uptime_kuma
   when: services[item.split('/')[0]].enabled | default(true)
 
 - name: Set proper permissions for data directories

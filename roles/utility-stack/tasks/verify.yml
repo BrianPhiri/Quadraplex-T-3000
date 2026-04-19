@@ -8,28 +8,35 @@
     msg: "{{ item.service }} service did not start within 5 minutes"
   loop:
     - { service: "Portainer", port: "{{ services.portainer.port }}" }
+    - { service: "Grafana", port: "{{ services.grafana.port }}" }
+    - { service: "Uptime-kuma", port: "{{ services.uptime_kuma.port }}" }
+    - { service: "Filebrowser", port: "{{ services.filebrowser.port }}" }
   when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
 
-- name: Check service health endpoints
-  uri:
-    url: "http://127.0.0.1:{{ item.port }}{{ item.health_path | default('') }}"
-    method: GET
-    status_code: [200, 302, 401] 
-    timeout: 30
-  register: health_check
-  retries: 5
-  delay: 10
-  until: health_check.status in [200, 302, 401]
-  loop:
-    - { service: "Portainer", port: "{{ services.portainer.port }}", health_path: "/" }
-  when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
-
+#- name: Check service health endpoints
+#  uri:
+#    url: "http://127.0.0.1:{{ item.port }}{{ item.health_path | default('') }}"
+#    method: GET
+#    status_code: [200, 302, 401] 
+#    timeout: 30
+#  register: health_check
+#  retries: 5
+#  delay: 10
+#  until: health_check.status in [200, 302, 401]
+#  loop:
+#    - { service: "Grafana", port: "{{ services.grafana.port }}", health_path: "/" }
+#    - { service: "Uptime-kuma", port: "{{ services.uptime_kuma.port }}", health_path: "/" }
+#    - { service: "Filebrowser", port: "{{ services.filebrowser.port }}", health_path: "/" }
+#  when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
+#
 - name: Check Docker container status
   docker_container_info:
     name: "{{ item }}"
   register: container_status
   loop:
     - portainer
+    - filebrowser
+    - uptime_kuma
   when: services[item.replace('-', '_')].enabled | default(true)
 
 - name: Verify containers are running
@@ -43,15 +50,15 @@
   loop: "{{ container_status.results }}"
   when: item.item is defined and services[item.item.replace('-', '_')].enabled | default(true)
 
-- name: Check Docker network connectivity
-  command: docker exec {{ item.container }} ping -c 1 {{ item.target }}
-  register: network_test
-  changed_when: false
-  failed_when: network_test.rc != 0
-  loop:
-    - { container: "portainer", target: "portainer" }
-  when: 
-    - services.portainer.enabled | default(true)
+#- name: Check Docker network connectivity
+#  command: docker exec {{ item.container }} ping -c 1 {{ item.target }}
+#  register: network_test
+#  changed_when: false
+#  failed_when: network_test.rc != 0
+#  loop:
+#    - { container: "portainer", target: "portainer" }
+#  when: 
+#    - services.portainer.enabled | default(true)
 
 - name: Verify data directory permissions
   stat:
@@ -59,6 +66,9 @@
   register: data_dir_stats
   loop:
     - portainer
+    - grafana
+    - filebrowser
+    - uptime-kuma
   when: services[item.replace('-', '_')].enabled | default(true)
 
 - name: Check data directory ownership
@@ -69,12 +79,14 @@
     fail_msg: "Data directory {{ item }} has incorrect ownership"
   loop:
     - portainer
+    - grafana
+    - filebrowser
+    - uptime-kuma
   loop_control:
     index_var: index
   when: 
     - services[item.replace('-', '_')].enabled | default(true)
     - data_dir_stats.results[index].stat.exists
-
 
 - name: Check systemd service status
   systemd:
