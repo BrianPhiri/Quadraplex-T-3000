@@ -1,0 +1,12 @@
+/var/log/docker/*.log {
+    daily
+    missingok
+    rotate {{ docker_log_max_files | default(7) }}
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+    postrotate
+        /bin/kill -USR1 $(cat /var/run/docker.pid) 2>/dev/null || true
+    endscript
+}

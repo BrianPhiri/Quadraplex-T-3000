@@ -1,0 +1,32 @@
+---
+# Users to add to docker group (can be overridden)
+docker_users:
+  - "{{ ansible_user }}"
+
+# Basic daemon settings (can be overridden)
+docker_data_root: "/var/lib/docker"
+docker_log_driver: "json-file"
+docker_log_max_size: "100m"
+docker_log_max_files: "3"
+docker_storage_driver: "overlay2"
+
+# Network settings
+docker_enable_ip_forward: true
+docker_enable_iptables: true
+
+# Empty arrays for registries (populate in group_vars if needed)
+docker_registry_mirrors: []
+docker_insecure_registries: []
+docker_dns: []
+
+# Performance defaults
+docker_max_concurrent_downloads: 3
+docker_max_concurrent_uploads: 3
+
+# Feature flags
+docker_enable_live_restore: false
+docker_experimental_features: false
+
+# Service configuration
+docker_service_overrides: []
+docker_daemon_port_enabled: false

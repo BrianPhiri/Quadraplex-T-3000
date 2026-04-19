@@ -1,0 +1,27 @@
+- name: restart docker
+  become: yes
+  systemd:
+    name: docker
+    state: restarted
+    daemon_reload: yes
+  listen: "restart docker"
+
+- name: reload systemd
+  become: yes
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+
+- name: stop docker
+  become: yes
+  systemd:
+    name: docker
+    state: stopped
+  listen: "stop docker"
+
+- name: start docker
+  become: yes
+  systemd:
+    name: docker
+    state: started
+  listen: "start docker"

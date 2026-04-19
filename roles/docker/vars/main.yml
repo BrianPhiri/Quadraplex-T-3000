@@ -1,0 +1,66 @@
+---
+# Docker package versions
+docker_version: "5:24.0.7-1~ubuntu.22.04~jammy"
+containerd_version: "1.6.24-1"
+docker_compose_version: "2.21.0"
+
+# Installation options
+install_compose_standalone: true
+verify_user_access: true
+
+# Docker daemon configuration
+docker_data_root: "/var/lib/docker"
+docker_storage_driver: "overlay2"
+
+# Logging configuration
+docker_log_driver: "json-file"
+docker_log_max_size: "100m"
+docker_log_max_files: "5"
+docker_log_compress: true
+docker_log_dir: "/var/log/docker"
+
+# Syslog configuration (if using syslog driver)
+docker_syslog_address: "tcp://localhost:514"
+docker_syslog_tag: "docker"
+
+# Network configuration
+docker_bridge_ip: "172.17.0.1/16"
+docker_enable_ip_forward: true
+docker_enable_iptables: true
+docker_userland_proxy: true
+
+# DNS configuration
+docker_dns:
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+# Registry configuration
+docker_registry_mirrors: []
+docker_insecure_registries: []
+
+# Resource limits
+docker_ulimit_nofile_soft: 65536
+docker_ulimit_nofile_hard: 65536
+docker_ulimit_nproc_soft: 32768
+docker_ulimit_nproc_hard: 32768
+
+# Performance settings
+docker_max_concurrent_downloads: 6
+docker_max_concurrent_uploads: 5
+docker_max_download_attempts: 5
+docker_shutdown_timeout: 60
+
+# Advanced features
+docker_enable_live_restore: true
+docker_experimental_features: false
+docker_metrics_address: ""  # Set to "127.0.0.1:9323" to enable
+
+# Network pools for swarm mode
+docker_default_address_pools:
+  - base: "172.30.0.0/16"
+    size: 24
+  - base: "172.31.0.0/16" 
+    size: 24
+
+# Service overrides (empty by default)
+docker_service_overrides: []

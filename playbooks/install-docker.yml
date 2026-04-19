@@ -1,0 +1,105 @@
+---
+- name: Install Docker on Target Servers
+  hosts: "{{ target_hosts | default('media_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: "{{ install_serial | default(1) }}"  # Install one at a time by default
+  
+  vars:
+    # Override these in command line or group_vars
+    docker_users:
+      - "{{ ansible_user }}"
+      - "media"
+    
+  vars_files:
+    - ../vars/versions.yml
+    
+  pre_tasks:
+    - name: Show installation plan
+      debug:
+        msg:
+          - "Installing Docker on: {{ ansible_fqdn }} ({{ ansible_host }})"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Users to add to docker group: {{ docker_users | join(', ') }}"
+      tags: always
+      
+    - name: Validate prerequisites
+      assert:
+        that:
+          - ansible_os_family == "Debian"
+          - ansible_distribution_version is version('18.04', '>=')
+          - ansible_architecture in ['x86_64', 'amd64']
+        fail_msg: "System requirements not met for Docker installation"
+      tags: validate
+      
+    - name: Check available disk space
+      shell: df / | tail -1 | awk '{print $4}'
+      register: available_space
+      changed_when: false
+      
+    - name: Ensure sufficient disk space
+      assert:
+        that:
+          - available_space.stdout | int > 2097152  # 2GB in KB
+        fail_msg: "Insufficient disk space. Need at least 2GB free"
+      tags: validate
+      
+    - name: Create media user if it doesn't exist
+      user:
+        name: media
+        uid: 1000
+#        group: media
+        shell: /bin/bash
+        create_home: yes
+        ssh_key_file: ~/.ssh/id_rsa.pub
+        comment: "Media Stack User"
+      when: "'media' in docker_users"
+      
+  roles:
+    - role: docker
+      tags: ['docker']
+      
+  post_tasks:
+    - name: Wait for Docker service to be fully ready
+      wait_for:
+        timeout: 30
+      become: yes
+      
+    - name: Perform post-installation tests
+      block:
+        - name: Test Docker daemon
+          command: docker info
+          register: docker_info
+          changed_when: false
+          
+        - name: Test container execution
+          command: docker run --rm alpine:latest echo "Docker is working!"
+          register: docker_test
+          changed_when: false
+          
+        - name: Display Docker system info
+          debug:
+            msg:
+              - "Docker installation successful!"
+              - "Docker version: {{ docker_version_check.stdout | default('Unknown') }}"
+              - "Containers can execute: {{ docker_test.stdout | default('Test failed') }}"
+              
+      rescue:
+        - name: Docker installation failed
+          fail:
+            msg: "Docker installation completed but tests failed. Check logs above."
+            
+      tags: ['test', 'verify']
+      
+    - name: Show management commands
+      debug:
+        msg:
+          - "Docker Management Commands:"
+          - "  View logs: journalctl -u docker -f"
+          - "  Restart service: sudo systemctl restart docker"
+          - "  Check status: sudo systemctl status docker"
+          - "  View daemon config: cat /etc/docker/daemon.json"
+          - "  System info: docker system df"
+          - "  Cleanup unused: docker system prune"
+      tags: always
