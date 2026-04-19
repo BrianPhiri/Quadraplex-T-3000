@@ -1,0 +1,32 @@
+---
+# Utility stack configuration
+utility_stack_base_path: "/opt/utility-stack"
+utility_stack:
+  # Paths
+  base_path: "{{ utility_stack_base_path }}"
+  config_path: "{{ utility_stack_base_path }}/configs"
+  data_path: "{{ utility_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "utility-net"
+  
+  # Domain configuration
+  domain: "{{ utility_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    portainer: "lts"
+
+# Service configuration
+services:
+  portainer:
+    enabled: true
+    port: 9443
+    version: "{{ utility_stack.versions.portainer | default('lts') }}"
+

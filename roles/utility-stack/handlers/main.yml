@@ -1,0 +1,25 @@
+---
+- name: restart utility stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ utiltiy_stack.base_path }}"
+    state: present
+    pull: missing
+    remove_orphans: yes
+  listen: "restart utility stack"
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+
+- name: enable utility stack service
+  systemd:
+    name: utility-stack
+    enabled: yes
+  listen: "enable utility stack service"
+
+- name: stop utility stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ utiltiy_stack.base_path }}"
+    state: absent
+  listen: "stop utility stack"

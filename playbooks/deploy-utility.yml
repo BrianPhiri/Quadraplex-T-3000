@@ -1,0 +1,42 @@
+---
+- name: Deploy Utility stack
+  hosts: "{{ target_host | default('utility_servers') }}"
+  become: yes
+  gather_facts: yes
+  serial: "{{ deploy_serial | default(1) }}"
+
+  vars_files:
+    - ../vars/versions.yml
+
+  pre_tasks:
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying utility stack to: {{ inventory_hostname }}"
+          - "Services to deploy:"
+          - " - Portainer: {{ services.portainer.enabled | default(true) }}"
+      tags: always
+
+  roles:
+    - role: utility-stack
+      tags: ['utility']
+
+  post_tasks:
+    - name: Confirming services are running
+      wait_for:
+        port: "{{ item.port }}"
+        host: "{{ ansible_host }}"
+        delay: 10
+        timeout: 300
+      loop:
+        - { service: "portainer", port: "{{ services.portainer.port }}"}
+      when: services[item.service].enabled | default(true)
+      
+    - name: Display access information
+      debug:
+        msg:
+          - "Utility stack deployed successfully"
+          - ""
+          - "Service URLs:"
+          - "  Portainer:    http://{{ ansible_host }}:{{ services.portainer.port }}"
+      tags: always

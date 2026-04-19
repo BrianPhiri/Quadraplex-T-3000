@@ -1,0 +1,25 @@
+---
+networks:
+  {{ utility_stack.network_name }}:
+    driver: bridge
+
+services:
+{% if services.portainer.enabled %}
+  portainer:
+    image: portainer/portainer-ce:{{ services.portainer.version }}
+    container_name: portainer
+    restart: unless-stopped
+    environment:
+      - PUID={{ utility_stack.user_id }}
+      - PGID={{ utility_stack.group_id }}
+      - TZ={{ utility_stack.timezone }}
+    volumes:
+      - {{ utility_stack.data_path }}/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "{{ services.portainer.port }}:9443"
+      - 8000:8000
+    networks:
+      - {{ utility_stack.network_name }}
+{% endif %}
+
