@@ -1,7 +1,7 @@
 include makefiles/docker.mk
-include makefiles/base-stack.mk
 include makefiles/user.mk
-include makefiles/proxy.mk
+include makefiles/deploy.mk
+include makefiles/clamav.mk
 
 # Makefile - Docker Installation Commands
 .PHONY: help install-docker docker-info docker-test docker-cleanup
