@@ -1,12 +1,12 @@
 # Host users configuration
 users_to_create:
-  - name: "media"
-    group: "media"
+  - name: "emmental"
+    group: "emmental"
     hosts:
-      - "media_servers"
+      - "all"
     ssh_key_file: "~/.ssh/id_rsa.pub"
 
 # Docker configuration
 docker_users:
   - "{{ ansible_user }}"
-  - "media"
+  - "emmental"

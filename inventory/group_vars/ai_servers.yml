@@ -1,0 +1,37 @@
+---
+# ai stack configuration
+ai_stack_base_path: "/opt/ai-stack"
+ai_stack:
+  # Paths
+  base_path: "{{ ai_stack_base_path }}"
+  config_path: "{{ ai_stack_base_path }}/configs"
+  data_path: "{{ ai_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "ai-net"
+  
+  # Domain configuration
+  domain: "{{ ai_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    openWebUi: "ollama"
+    faster_whisper: "latest"
+
+# Service configuration
+services:
+  openWebUi:
+    enabled: false
+    port: 4000
+    version: "{{ ai_stack.versions.openWebUi | default('ollama') }}"
+  faster_whisper:
+    enabled: false
+    port: 10300
+    version: "{{ ai_stack.versions.faster_whisper | default('latest') }}"
+

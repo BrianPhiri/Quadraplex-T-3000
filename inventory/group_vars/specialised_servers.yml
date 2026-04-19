@@ -1,0 +1,36 @@
+---
+# specialised stack configuration
+specialised_stack_base_path: "/opt/specialised-stack"
+specialised_stack:
+  # Paths
+  base_path: "{{ specialised_stack_base_path }}"
+  config_path: "{{ specialised_stack_base_path }}/configs"
+  data_path: "{{ specialised_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "specialised-net"
+  
+  # Domain configuration
+  domain: "{{ specialised_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    browserless: "lts"
+    metatrader: "main"
+
+# Service configuration
+services:
+  browserless:
+    enabled: false
+    port: 9443
+    version: "{{ specialised_stack.versions.browserless | default('lts') }}"
+  metatrader:
+    enabled: false
+    port: 3000
+    version: "{{ specialised_stack.versions.metatrader | default('main') }}"

@@ -1,0 +1,48 @@
+---
+# automation stack configuration
+automation_stack_base_path: "/opt/automation-stack"
+automation_stack:
+  # Paths
+  base_path: "{{ automation_stack_base_path }}"
+  config_path: "{{ automation_stack_base_path }}/configs"
+  data_path: "{{ automation_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "automation-net"
+  
+  # Domain configuration
+  domain: "{{ automation_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    homeassistant: "latest"
+    n8n: "latest"
+    gotify: "2"
+    apprise_api: "latest"
+
+# Service configuration
+services:
+  homeassistant:
+    enabled: true
+    port: 9443
+    version: "{{ automation_stack.versions.homeassistant | default('latest') }}"
+  n8n:
+    enabled: false
+    port: 5678
+    version: "{{ automation_stack.versions.n8n | default('latest') }}"
+  gotify:
+    enabled: false
+    http: 80
+    https: 443
+    version: "{{ automation_stack.versions.gotify | default('latest') }}"
+  apprise_api:
+    enabled: false
+    port: 8000
+    version: "{{ automation_stack.versions.apprise_api | default('lts') }}"
+

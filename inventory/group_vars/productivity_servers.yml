@@ -1,0 +1,67 @@
+---
+# productivity stack configuration
+productivity_stack_base_path: "/opt/productivity-stack"
+productivity_stack:
+  # Paths
+  base_path: "{{ productivity_stack_base_path }}"
+  config_path: "{{ productivity_stack_base_path }}/configs"
+  data_path: "{{ productivity_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "productivity-net"
+  
+  # Domain configuration
+  domain: "{{ productivity_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    nextcloud: "lts"
+    gitea: "main"
+    code_server: "1"
+    penpot: "v2-s6"
+    quant_ux: "v2-s6"
+    grocy: "v2-s6"
+    hortusfox: "v2-s6"
+
+# Service configuration
+services:
+  nextcloud:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.nextcloud | default('lts') }}"
+  gitea:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.gitea | default('lts') }}"
+  code_server:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.code_server | default('lts') }}"
+  nextcloud:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.portainer | default('lts') }}"
+  penpot:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.penpot | default('latest') }}"
+  quant_ux:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.quant_ux | default('lts') }}"
+  grocy:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.grocy | default('lts') }}"
+  hortusfox:
+    enabled: false
+    port: 9443
+    version: "{{ productivity_stack.versions.hortusfox | default('lts') }}"
+
+

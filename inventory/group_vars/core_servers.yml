@@ -1,0 +1,99 @@
+---
+# core_systems stack configuration
+core_systems_stack_base_path: "/opt/utility-stack"
+core_stack:
+  # Paths
+  base_path: "{{ core_systems_stack_base_path }}"
+  config_path: "{{ core_systems_stack_base_path }}/configs"
+  data_path: "{{ core_systems_stack_base_path }}/data"
+  
+  timezone: "Africa/Nairobi"
+  # User configuration
+  user_id: 1000
+  group_id: 1000
+  
+  # Network
+  network_name: "core_systems-net"
+  
+  # Domain configuration
+  domain: "{{ core_systems_domain | default('localhost') }}"
+  enable_ssl: false
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    traefik: ""
+    portainer: "lts"
+    grafana: "main"
+    uptime_kuma: "1"
+    filebrowser: "v2-s6"
+    crowdsec: ""
+    wireshark: ""
+    adguard_home:
+
+  # Service configuration
+  services:
+    traefik:
+      enabled: false
+      port: 9443
+      version: "{{ core_stack.versions.traefik | default('lts') }}"
+    portainer:
+      enabled: false
+      port: 9443
+      version: "{{ core_stack.versions.portainer | default('lts') }}"
+    grafana:
+      enabled: false
+      port: 3000
+      version: "{{ core_stack.versions.grafana | default('main') }}"
+    uptime_kuma:
+      enabled: false
+      port: 3001
+      version: "{{ core_stack.versions.uptime_kuma | default('1') }}"
+    filebrowser:
+      enabled: false
+      port: 8081
+      version: "{{ core_stack.versions.filebrowser | default('latest') }}"
+    crowdsec:
+      enabled: false
+      port: 8081
+      version: "{{ core_stack.versions.crowdsec | default('latest') }}"
+    wireshark:
+      enabled: false
+      port: 8081
+      version: "{{ core_stack.versions.wireshark | default('latest') }}"
+    adguard_home:
+      enabled: false
+      port: 8081
+      version: "{{ core_stack.versions.adguard_home | default('latest') }}"
+  
+  # Cloudflare credentials
+  cloudflare_api_token: "{{ cloudflare_token }}"
+  
+  # Traefik dashboard credentials (htpasswd format)
+  # Generate with: echo $(htpasswd -nb admin your-password) | sed -e s/\\$/\\$\\$/g
+  traefik_dashboard_credentials: "{{ dashboard.credentials }}"
+  traefik_dashboard_host: "{{ dashboard.host }}"
+  
+  # Traefik configuration
+  traefik_acme_email: "{{ acme_email }}"
+  traefik_debug: false
+  
+  # Auto-generate routes from this list
+  traefik_routes:
+    - name: proxmox
+      host: proxmox
+      service: proxmox
+      
+    - name: portainer
+      host: portainer
+      service: portainer
+ 
+  # Define backend services
+  traefik_services:
+    - name: proxmox
+      servers:
+        - url: "https://192.168.0.3:8006"
+      pass_host_header: true
+      
+    - name: portainer
+      servers:
+        - url: "{{ utility_stack.versions.portainer | default('lts') }}"

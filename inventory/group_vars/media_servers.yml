@@ -34,56 +34,77 @@ media_stack:
     releasarr: "latest"
     suggestarr: "latest"
     kavita: "latest"
+    immich: ""
+    lychee: ""
+    mame: ""
+    your_spotify: ""
 
 # Service configuration
 services:
   prowlarr:
-    enabled: true
+    enabled: false
     port: 9696
     version: "{{ media_stack.versions.prowlarr | default('latest') }}"
   sonarr:
-    enabled: true
+    enabled: false
     port: 8989
     version: "{{ media_stack.versions.sonarr | default('latest') }}"
   radarr:
-    enabled: true
+    enabled: false
     port: 7878
     version: "{{ media_stack.versions.radarr | default('latest') }}"
   jellyseerr:
-    enabled: true
+    enabled: false
     port: 5055
     version: "{{ media_stack.versions.jellyseerr | default('latest') }}"
   jellyfin:
-    enabled: true
+    enabled: false
     port: 8096
     version: "{{ media_stack.versions.jellyfin | default('latest') }}"
   bazarr:
-    enabled: true
+    enabled: false
     port: 6767
     version: "{{ media_stack.versions.bazarr | default('latest') }}"
   lidarr:
-    enabled: true
+    enabled: false
     port: 8686
     version: "{{ media_stack.versions.lidarr | default('latest') }}"
   releasarr:
-    enabled: true
+    enabled: false
     port: 1337
     version: "{{ media_stack.versions.releasarr | default('latest') }}"
   huntarr:
-    enabled: true
+    enabled: false
     port: 9705
     version: "{{ media_stack.versions.huntarr | default('latest') }}"
   suggestarr:
-    enabled: true
+    enabled: false
     port: 5000
     version: "{{ media_stack.versions.suggestarr | default('latest') }}"
   qbittorrent:
-    enabled: true
+    enabled: false
     port: 8080
     peer_port: 6881
     version: "{{ media_stack.versions.qbittorrent | default('latest') }}"
   kavita:
-    enabled: true
+    enabled: false
     port: 5001
     internal_port: 5000
     version: "{{ media_stack.versions.kavita | default('latest') }}"
+  immich:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.immich | default('latest') }}"
+  lychee:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.lychee | default('latest') }}"
+  mame:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.mame | default('latest') }}"
+  your_spotify:
+    enabled: false
+    port: 5001
+    version: "{{ media_stack.versions.your_spotify | default('latest') }}"
+
