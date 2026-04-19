@@ -1,0 +1,11 @@
+---
+- name: Verify user existence and return UID
+  command: "id -u {{ user_to_check.name }}"
+  register: user_id_result
+  changed_when: false # This is a check, so it should not change system state
+  failed_when: user_id_result.rc != 0 # Command fails (non-zero return code) if user doesn't exist
+
+- name: Display the User ID
+  debug:
+    msg: "User '{{ user_to_check.name }}' exists with UID: {{ user_id_result.stdout }}"
+

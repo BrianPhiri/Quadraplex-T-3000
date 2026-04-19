@@ -1,0 +1,32 @@
+---
+- name: Manage users and SSH keys
+  hosts: all 
+  gather_facts: true
+  become: true 
+
+  roles:
+    - role: users
+      tags: ['users']
+  
+  post_tasks:
+    - name: Get all users and filter out system accounts
+      getent:
+        database: passwd
+        split: ":"       
+      register: all_users_data
+
+    - name: Extract only human-created users
+      set_fact:
+        my_created_users: |
+          {
+          {%- for user, data in all_users_data.ansible_facts.getent_passwd.items() %}
+            {%- set uid = data[1] | int -%}
+            {%- if uid >= 1000 and user != "nfsnobody" and uid < 6000 -%}
+              "{{ user }}": {{ uid }}{{ "," if not loop.last else "" }}
+            {%- endif -%}
+          {%- endfor %}
+          }
+
+    - name: Display all the users and hosts
+      debug:
+        msg: "{{ inventory_hostname }} -> {{ my_created_users }}"
