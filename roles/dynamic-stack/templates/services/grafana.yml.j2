@@ -1,0 +1,42 @@
+grafana:
+  image: grafana/grafana:{{ services.grafana.version }}
+  container_name: grafana
+  restart: unless-stopped
+  user: "{{ stack_config.user_id }}:{{ stack_config.group_id }}"
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.data_path }}/grafana/lib:/var/lib/grafana
+    - {{ stack_config.data_path }}/grafana/plugins:/var/lib/grafana/plugins
+    - {{ stack_config.data_path }}/grafana/provisioning:/etc/grafana/provisioning
+  ports:
+    - "{{ services.grafana.port }}:3000"
+{% if services.grafana.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.grafana.rule=Host(`{{ services.grafana.traefik.host }}.{{ services.grafana.traefik.domain }}`)
+    - traefik.http.routers.grafana.entrypoints=https
+    - traefik.http.routers.grafana.tls=true
+    - traefik.http.routers.grafana-http.rule=Host(`{{ services.grafana.traefik.host }}.{{ services.grafana.traefik.domain }}`)
+    - traefik.http.routers.grafana-http.entrypoints=http
+    - traefik.http.routers.grafana-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.grafana.loadbalancer.server.port=80
+    - traefik.http.services.grafana.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.grafana.networks is defined %}
+  networks:
+{% for network in services.grafana.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.grafana.dnss is defined %}
+  dns:
+{% for dns in services.grafana.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

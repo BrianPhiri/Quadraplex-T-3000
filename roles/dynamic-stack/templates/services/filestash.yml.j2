@@ -1,0 +1,62 @@
+filestash:
+  container_name: filestash
+  image: machines/filestash:{{ services.filestash.version  }}
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - APPLICATION_URL=
+    - CANARY=true
+    - OFFICE_URL=http://wopi_server:9980
+    - OFFICE_FILESTASH_URL=http://app:8334
+    - OFFICE_REWRITE_URL=http://127.0.0.1:9980
+  ports:
+    - "{{ services.filestash.port }}:8334"
+  volumes:
+    - {{ stack_config.data_path }}/filestash:/app/data/state/
+{% if services.filestash.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.filestash.rule=Host(`{{ services.filestash.traefik.host }}.{{ services.filestash.traefik.domain }}`)
+    - traefik.http.routers.filestash.entrypoints=https
+    - traefik.http.routers.filestash.tls=true
+    - traefik.http.routers.filestash-http.rule=Host(`{{ services.filestash.traefik.host }}.{{ services.filestash.traefik.domain }}`)
+    - traefik.http.routers.filestash-http.entrypoints=http
+    - traefik.http.routers.filestash-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.filestash.loadbalancer.server.port=8334
+    - traefik.http.services.filestash.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.filestash.networks is defined %}
+  networks:
+{% for network in services.filestash.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.filestash.dnss is defined %}
+  dns:
+{% for dns in services.filestash.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+
+wopi_server:
+  container_name: filestash_wopi
+  image: collabora/code:24.04.10.2.1
+  restart: always
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - "extra_params=--o:ssl.enable=false"
+    - aliasgroup1="https://.*:443"
+  command:
+    - /bin/bash
+    - -c
+    - |
+       curl -o /usr/share/coolwsd/browser/dist/branding-desktop.css https://gist.githubusercontent.com/mickael-kerjean/bc1f57cd312cf04731d30185cc4e7ba2/raw/d706dcdf23c21441e5af289d871b33defc2770ea/destop.css
+       /bin/su -s /bin/bash -c '/start-collabora-online.sh' cool
+  user: root
+  ports:
+  - "9980:9980"
+

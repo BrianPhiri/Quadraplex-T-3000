@@ -1,0 +1,68 @@
+n8n_postgres:
+  image: postgres:{{ services.n8n.db_version }}
+  container_name: n8n_postgres
+  restart: unless-stopped
+  environment:
+    - TZ={{ stack_config.timezone }}
+    - POSTGRES_USER={{ services.n8n.db.user }}
+    - POSTGRES_PASSWORD={{ services.n8n.db.password }}
+    - POSTGRES_DB={{ services.n8n.db.name }}
+    - POSTGRES_NON_ROOT_USER={{ services.n8n.db.user_non_root }}
+    - POSTGRES_NON_ROOT_PASSWORD={{ services.n8n.db.password_non_root }}
+  volumes:
+    - {{  stack_config.data_path  }}/n8n/db:/var/lib/postgresql/data
+    - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+  ports:
+    - 5434:5432
+{% if services.n8n.networks is defined %}
+  networks:
+{% for network in services.n8n.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+n8n:
+  container_name: n8n
+  image: docker.n8n.io/n8nio/n8n:{{ services.n8n.version }}
+  user: "{{ stack_config.user_id }}:{{ stack_config.group_id }}"
+  restart: always
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - DB_TYPE=postgresdb
+    - DB_POSTGRESDB_HOST=n8n_postgres
+    - DB_POSTGRESDB_PORT=5432
+    - DB_POSTGRESDB_DATABASE={{ services.n8n.db.name }}
+    - DB_POSTGRESDB_USER={{ services.n8n.db.user }}
+    - DB_POSTGRESDB_PASSWORD={{ services.n8n.db.password }}
+    - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+    - N8N_ENCRYPTION_KEY={{ services.n8n.encryption_key }}
+  ports:
+    - {{ services.n8n.port }}:5678
+  depends_on:
+    - n8n_postgres
+  volumes:
+    - {{ stack_config.data_path }}/n8n/n8n:/home/node/.n8n
+{% if services.n8n.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.n8n.rule=Host(`{{ services.n8n.traefik.host }}.{{ services.n8n.traefik.domain }}`)
+    - traefik.http.routers.n8n.entrypoints=https
+    - traefik.http.routers.n8n.tls=true
+    - traefik.http.routers.n8n-http.rule=Host(`{{ services.n8n.traefik.host }}.{{ services.n8n.traefik.domain }}`)
+    - traefik.http.routers.n8n-http.entrypoints=http
+    - traefik.http.routers.n8n-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.n8n.loadbalancer.server.port=5678
+    - traefik.http.services.n8n.loadbalancer.server.scheme=http
+{% endif %}
+
+{% if services.n8n.networks is defined %}
+  networks:
+{% for network in services.n8n.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+

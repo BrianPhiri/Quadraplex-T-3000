@@ -1,0 +1,46 @@
+portainer:
+  image: portainer/portainer-ce:{{ services.portainer.version  }}
+  container_name: portainer
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  ports:
+    - "8000:8000"
+    - "9000:9000"
+    - "{{  services.portainer.port  }}:9443"
+  security_opt:
+    - no-new-privileges:true
+  volumes:
+    - /etc/localtime:/etc/localtime:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - {{ stack_config.data_path }}/portainer:/data
+{% if services.portainer.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.portainer.rule=Host(`{{ services.portainer.traefik.host }}.{{ services.portainer.traefik.domain }}`)
+    - traefik.http.routers.portainer.entrypoints=https
+    - traefik.http.routers.portainer.tls=true
+    - traefik.http.routers.portainer-http.rule=Host(`{{ services.portainer.traefik.host }}.{{ services.portainer.traefik.domain }}`)
+    - traefik.http.routers.portainer-http.entrypoints=http
+    - traefik.http.routers.portainer-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.portainer.loadbalancer.server.port=9443
+    - traefik.http.services.portainer.loadbalancer.server.scheme=https
+{% endif %}
+
+{% if services.portainer.networks is defined %}
+  networks:
+{% for network in services.portainer.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.portainer.dnss is defined %}
+  dns:
+{% for dns in services.portainer.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

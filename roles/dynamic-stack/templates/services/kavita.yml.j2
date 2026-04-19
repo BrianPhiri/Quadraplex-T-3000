@@ -8,13 +8,35 @@ kavita:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/kavita:/config
-    - {{ stack_config.data_path }}/kavita:/data
+    - {{ stack_config.media_path }}/books:/data
   ports:
     - "{{ services.kavita.port }}:5000"
+{% if services.kavita.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.kavita.rule=Host(`{{ services.kavita.traefik.host }}.{{ services.kavita.traefik.domain }}`)
+    - traefik.http.routers.kavita.entrypoints=https
+    - traefik.http.routers.kavita.tls=true
+    - traefik.http.routers.kavita-http.rule=Host(`{{ services.kavita.traefik.host }}.{{ services.kavita.traefik.domain }}`)
+    - traefik.http.routers.kavita-http.entrypoints=http
+    - traefik.http.routers.kavita-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.kavita.loadbalancer.server.port=5000
+    - traefik.http.services.kavita.loadbalancer.server.scheme=http
+{% endif %}
+
 {% if services.kavita.networks is defined %}
   networks:
 {% for network in services.kavita.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.kavita.dnss is defined %}
+  dns:
+{% for dns in services.kavita.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

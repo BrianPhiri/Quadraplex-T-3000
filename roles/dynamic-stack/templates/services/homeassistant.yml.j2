@@ -1,0 +1,38 @@
+homeassistant:
+  image: lscr.io/linuxserver/homeassistant:{{ services.homeassistant.version }}
+  container_name: homeassistant
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/homeassistant:/config
+  ports:
+    - "{{ services.homeassistant.port }}:8123"
+{% if services.homeassistant.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.homeassistant.rule=Host(`{{ services.homeassistant.traefik.host }}.{{ services.homeassistant.traefik.domain }}`)
+    - traefik.http.routers.homeassistant.entrypoints=https
+    - traefik.http.routers.homeassistant.tls=true
+    - traefik.http.routers.homeassistant-http.rule=Host(`{{ services.homeassistant.traefik.host }}.{{ services.homeassistant.traefik.domain }}`)
+    - traefik.http.routers.homeassistant-http.entrypoints=http
+    - traefik.http.routers.homeassistant-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.homeassistant.loadbalancer.server.port=8123
+    - traefik.http.services.homeassistant.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.homeassistant.networks is defined %}
+  networks:
+{% for network in services.homeassistant.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.homeassistant.dnss is defined %}
+  dns:
+{% for dns in services.homeassistant.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+	

@@ -12,10 +12,31 @@ radarr:
     - {{ stack_config.downloads_path }}:/downloads
   ports:
     - "{{ services.radarr.port }}:7878"
+{% if services.radarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.radarr.rule=Host(`{{ services.radarr.traefik.host }}.{{ services.radarr.traefik.domain }}`)
+    - traefik.http.routers.radarr.entrypoints=https
+    - traefik.http.routers.radarr.tls=true
+    - traefik.http.routers.radarr-http.rule=Host(`{{ services.radarr.traefik.host }}.{{ services.radarr.traefik.domain }}`)
+    - traefik.http.routers.radarr-http.entrypoints=http
+    - traefik.http.routers.radarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.radarr.loadbalancer.server.port=7878
+    - traefik.http.services.radarr.loadbalancer.server.scheme=http
+{% endif %}
 {% if services.radarr.networks is defined %}
   networks:
 {% for network in services.radarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.radarr.dnss is defined %}
+  dns:
+{% for dns in services.radarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

@@ -1,0 +1,23 @@
+alertmanager:
+  image: prom/alertmanager:{{ services.alertmanager.version }}
+  container_name: alertmanager
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    - {{ stack_config.data_path }}/alertmanager:/alertmanager
+  command:
+    - "--config.file=/etc/alertmanager/alertmanager.yml"
+    - "--storage.path=/alertmanager"
+  ports:
+    - "{{ services.alertmanager.port }}:9093"
+  restart: unless-stopped
+{% if services.alertmanager.networks is defined %}
+  networks:
+{% for network in services.alertmanager.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

@@ -45,11 +45,17 @@
   set_fact:
     compose_networks: {}
 
-- name: Add networks
+- name: Add networks (Force External for Shared/Pre-created Networks)
   set_fact:
-    compose_networks: "{{ compose_networks | combine({item: {'driver': 'bridge'}}) }}"
+    compose_networks: >
+      {{ compose_networks | combine({
+        item:
+          stack_config.network_configs.get(item) | default({}) | combine({'name': item})
+        if item in stack_config.network_configs
+        else 
+          { 'name': item, 'external': true } 
+      }) }}
   loop: "{{ required_networks }}"
-
 - name: Build final docker-compose structure
   set_fact:
     compose_content:

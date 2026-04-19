@@ -1,0 +1,68 @@
+boards:
+  image: ghcr.io/rargames/4gaboards:{{ services.boards.version }}
+  container_name: 4gaboards
+  restart: unless-stopped
+  volumes:
+    - {{ stack_config.data_path }}/boards/user-avatars:/app/public/user-avatars
+    - {{ stack_config.data_path }}/boards/project-background-images:/app/public/project-background-images
+    - {{ stack_config.data_path }}/boards/attachments:/app/private/attachments
+  ports:
+    - {{ services.boards.port }}:1337
+  environment:
+    - BASE_URL=https://{{ services.boards.traefik.host }}.{{ services.boards.traefik.domain }}
+    - SECRET_KEY={{ services.boards.secret_key }}
+    - DATABASE_URL=postgresql://postgres:{{ services.boards.db.password }}@boards-db/{{ services.boards.db.name }}
+    - NODE_ENV=production
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  depends_on:
+    boards-db:
+      condition: service_healthy
+{% if services.boards.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.boards.rule=Host(`{{ services.boards.traefik.host }}.{{ services.boards.traefik.domain }}`)
+    - traefik.http.routers.boards.entrypoints=https
+    - traefik.http.routers.boards.tls=true
+    - traefik.http.routers.boards-http.rule=Host(`{{ services.boards.traefik.host }}.{{ services.boards.traefik.domain }}`)
+    - traefik.http.routers.boards-http.entrypoints=http
+    - traefik.http.routers.boards-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.boards.loadbalancer.server.port=1337
+    - traefik.http.services.boards.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.boards.networks is defined %}
+  networks:
+{% for network in services.boards.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+boards-db:
+  image: postgres:16-alpine
+  container_name: boards-db
+  restart: unless-stopped
+  volumes:
+    - {{ stack_config.data_path }}/boards/db:/var/lib/postgresql/data
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - POSTGRES_DB={{ services.boards.db.name }}
+    - POSTGRES_PASSWORD={{ services.boards.db.password }}
+    - POSTGRES_INITDB_ARGS='-A scram-sha-256'
+  ports:
+    - 5432:5432
+  healthcheck:
+    test: ['CMD-SHELL', 'pg_isready -U postgres -d boards']
+    interval: 1s
+    timeout: 5s
+    retries: 50
+{% if services.boards.networks is defined %}
+  networks:
+{% for network in services.boards.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

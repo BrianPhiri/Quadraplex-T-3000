@@ -12,10 +12,31 @@ lidarr:
     - {{ stack_config.downloads_path}}:/downloads
   ports:
     - "{{ services.lidarr.port }}:8686"
+{% if services.lidarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.lidarr.rule=Host(`{{ services.lidarr.traefik.host }}.{{ services.lidarr.traefik.domain }}`)
+    - traefik.http.routers.lidarr.entrypoints=https
+    - traefik.http.routers.lidarr.tls=true
+    - traefik.http.routers.lidarr-http.rule=Host(`{{ services.lidarr.traefik.host }}.{{ services.lidarr.traefik.domain }}`)
+    - traefik.http.routers.lidarr-http.entrypoints=http
+    - traefik.http.routers.lidarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.lidarr.loadbalancer.server.port=8686
+    - traefik.http.services.lidarr.loadbalancer.server.scheme=http
+{% endif %}
 {% if services.lidarr.networks is defined %}
   networks:
 {% for network in services.lidarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.lidarr.dnss is defined %}
+  dns:
+{% for dns in services.lidarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

@@ -1,0 +1,27 @@
+calico-node:
+  image: calico/node:{{ services.calico.version }}
+  container_name: calico-node
+  restart: unless-stopped
+  privileged: true
+  network_mode: host
+  environment:
+    ETCD_ENDPOINTS: {{ services.calico.etcd_endpoints }}
+    CALICO_NODENAME: "{{ services.calico.node_name }}"
+    DATASTORE_TYPE: "etcdv3"
+    CALICO_NETWORKING_BACKEND: "bird"
+    IP_AUTODETECTION_METHOD: "first-found"
+    CALICO_IPV4POOL_CIDR: "192.168.0.0/16"
+    CALICO_IPV4POOL_IPIP: "Always"
+    CALICO_IPV6POOL_NAT_OUTGOING: "false"
+    FELIX_IPV6SUPPORT: "false"
+    CALICO_LIBNETWORK_ENABLED: "true"
+    CONTAINER_PLATFORM: "docker"
+    CALICO_STARTUP_LOGLEVEL: "info"
+    KUBERNETES_SERVICE_HOST: ""
+    
+  volumes:
+    - /var/run/calico:/var/run/calico
+    - /lib/modules:/lib/modules:ro
+    - /var/log/calico:/var/log/calico
+    - /run/docker/plugins:/run/docker/plugins
+    - /var/run/docker.sock:/var/run/docker.sock

@@ -1,0 +1,39 @@
+glance:
+  container_name: glance
+  image: glanceapp/glance
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.data_path }}/glance:/app/config
+  ports:
+    - {{ services.glance.port }}:8080
+{% if services.glance.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.glance.rule=Host(`{{ services.glance.traefik.host }}.{{ services.glance.traefik.domain }}`)
+    - traefik.http.routers.glance.entrypoints=https
+    - traefik.http.routers.glance.tls=true
+    - traefik.http.routers.glance-http.rule=Host(`{{ services.glance.traefik.host }}.{{ services.glance.traefik.domain }}`)
+    - traefik.http.routers.glance-http.entrypoints=http
+    - traefik.http.routers.glance-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.glance.loadbalancer.server.port=8080
+    - traefik.http.services.glance.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.glance.networks is defined %}
+  networks:
+{% for network in services.glance.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.glance.dnss is defined %}
+  dns:
+{% for dns in services.glance.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

@@ -11,13 +11,35 @@ qbittorrent:
     - {{ stack_config.config_path }}/qbittorrent:/config
     - {{ stack_config.downloads_path }}:/downloads
   ports:
-    - "{{ services.qbittorrent.port }}:{{ services.qbittorrent.port }}"
-    - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}"
-    - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}/udp"
+    - "{{ services.qbittorrent.port }}:8080"
+    - "{{ services.qbittorrent.peer_port }}:6881"
+    - "{{ services.qbittorrent.peer_port }}:6881/udp"
+{% if services.qbittorrent.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.qbittorrent.rule=Host(`{{ services.qbittorrent.traefik.host }}.{{ services.qbittorrent.traefik.domain }}`)
+    - traefik.http.routers.qbittorrent.entrypoints=https
+    - traefik.http.routers.qbittorrent.tls=true
+    - traefik.http.routers.qbittorrent-http.rule=Host(`{{ services.qbittorrent.traefik.host }}.{{ services.qbittorrent.traefik.domain }}`)
+    - traefik.http.routers.qbittorrent-http.entrypoints=http
+    - traefik.http.routers.qbittorrent-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.qbittorrent.loadbalancer.server.port=8080
+    - traefik.http.services.qbittorrent.loadbalancer.server.scheme=http
+{% endif %}
+
 {% if services.qbittorrent.networks is defined %}
   networks:
 {% for network in services.qbittorrent.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.qbittorrent.dnss is defined %}
+  dns:
+{% for dns in services.qbittorrent.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

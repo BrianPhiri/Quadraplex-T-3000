@@ -1,0 +1,40 @@
+uptime_kuma:
+  image: louislam/uptime-kuma:{{ services.uptime_kuma.version }}
+  container_name: uptime_kuma
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.data_path }}/uptime_kuma:/app/data
+  ports:
+    - "{{ services.uptime_kuma.port }}:3001"
+{% if services.uptime_kuma.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.uptime_kuma.rule=Host(`{{ services.uptime_kuma.traefik.host }}.{{ services.uptime_kuma.traefik.domain }}`)
+    - traefik.http.routers.uptime_kuma.entrypoints=https
+    - traefik.http.routers.uptime_kuma.tls=true
+    - traefik.http.routers.uptime_kuma-http.rule=Host(`{{ services.uptime_kuma.traefik.host }}.{{ services.uptime_kuma.traefik.domain }}`)
+    - traefik.http.routers.uptime_kuma-http.entrypoints=http
+    - traefik.http.routers.uptime_kuma-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.uptime_kuma.loadbalancer.server.port=3001
+    - traefik.http.services.uptime_kuma.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.uptime_kuma.networks is defined %}
+  networks:
+{% for network in services.uptime_kuma.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.uptime_kuma.dnss is defined %}
+  dns:
+{% for dns in services.uptime_kuma.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

@@ -12,10 +12,32 @@ sonarr:
     - {{ stack_config.downloads_path }}:/downloads
   ports:
     - "{{ services.sonarr.port }}:8989"
+{% if services.sonarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.sonarr.rule=Host(`{{ services.sonarr.traefik.host }}.{{ services.sonarr.traefik.domain }}`)
+    - traefik.http.routers.sonarr.entrypoints=https
+    - traefik.http.routers.sonarr.tls=true
+    - traefik.http.routers.sonarr-http.rule=Host(`{{ services.sonarr.traefik.host }}.{{ services.sonarr.traefik.domain }}`)
+    - traefik.http.routers.sonarr-http.entrypoints=http
+    - traefik.http.routers.sonarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.sonarr.loadbalancer.server.port=8989
+    - traefik.http.services.sonarr.loadbalancer.server.scheme=http
+{% endif %}
+
 {% if services.sonarr.networks is defined %}
   networks:
 {% for network in services.sonarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.sonarr.dnss is defined %}
+  dns:
+{% for dns in services.sonarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

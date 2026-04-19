@@ -12,10 +12,30 @@ releasarr:
     - {{ stack_config.data_path}}/releasarr/logs:/logs
   ports:
     - "{{ services.releasarr.port }}:1337"
+{% if services.releasarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.releasarr.rule=Host(`{{ services.releasarr.traefik.host }}.{{ services.releasarr.traefik.domain }}`)
+    - traefik.http.routers.releasarr.entrypoints=https
+    - traefik.http.routers.releasarr.tls=true
+    - traefik.http.routers.releasarr-http.rule=Host(`{{ services.releasarr.traefik.host }}.{{ services.releasarr.traefik.domain }}`)
+    - traefik.http.routers.releasarr-http.entrypoints=http
+    - traefik.http.routers.releasarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.releasarr.loadbalancer.server.port=1337
+    - traefik.http.services.releasarr.loadbalancer.server.scheme=http
+{% endif %}
 {% if services.releasarr.networks is defined %}
   networks:
 {% for network in services.releasarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+{% if services.releasarr.dnss is defined %}
+  dns:
+{% for dns in services.releasarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

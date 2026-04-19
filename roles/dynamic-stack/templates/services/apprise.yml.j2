@@ -1,0 +1,19 @@
+apprise:
+  container_name: apprise
+  image: caronc/apprise:{{ services.apprise.version }}
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  ports:
+    - '{{ services.apprise.port }}:8000'
+  volumes:
+    - '{{ stack_config.config_path }}/apprise:/config'
+  restart: unless-stopped 
+{% if services.apprise.networks is defined %}
+  networks:
+{% for network in services.apprise.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

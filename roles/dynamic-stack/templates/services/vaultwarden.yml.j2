@@ -1,0 +1,39 @@
+vaultwarden:
+  image: vaultwarden/server:{{ services.vaultwarden.version }}
+  container_name: vaultwarden
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.data_path }}/vaultwarden/vw-data:/data/
+  ports:
+    - "{{ services.vaultwarden.port }}:80"
+{% if services.vaultwarden.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.vaultwarden.rule=Host(`{{ services.vaultwarden.traefik.host }}.{{ services.vaultwarden.traefik.domain }}`)
+    - traefik.http.routers.vaultwarden.entrypoints=https
+    - traefik.http.routers.vaultwarden.tls=true
+    - traefik.http.routers.vaultwarden-http.rule=Host(`{{ services.vaultwarden.traefik.host }}.{{ services.vaultwarden.traefik.domain }}`)
+    - traefik.http.routers.vaultwarden-http.entrypoints=http
+    - traefik.http.routers.vaultwarden-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.vaultwarden.loadbalancer.server.port=80
+    - traefik.http.services.vaultwarden.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.vaultwarden.networks is defined %}
+  networks:
+{% for network in services.vaultwarden.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.vaultwarden.dnss is defined %}
+  dns:
+{% for dns in services.vaultwarden.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

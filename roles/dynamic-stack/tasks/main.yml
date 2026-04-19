@@ -14,9 +14,8 @@
   vars:
     stack_config: "{{ stack }}"
     stack_path: "{{ stack_role_path }}"
-    stack_config: "{{ stack }}"
 
-- name: Deploy media stack using common docker-stack role
+- name: Deploy {{ stack }} stack using common docker-stack role
   include_role:
     name: base-stack
   vars:

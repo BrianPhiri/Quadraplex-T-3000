@@ -1,0 +1,17 @@
+cadvisor:
+  image: gcr.io/cadvisor/cadvisor:{{ services.cadvisor.version }}
+  container_name: cadvisor
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:ro
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    - /dev/disk/:/dev/disk:ro
+  ports:
+    - "{{ services.cadvisor.port }}:8080"
+  restart: unless-stopped

@@ -1,0 +1,15 @@
+netbird:
+  image: netbirdio/netbird:{{ services.netbird.version }}
+  container_name: netbird
+  hostname: {{ services.netbird.hostname }}
+  restart: unless-stopped
+  privileged: true
+  cap_add:
+    - NET_ADMIN
+    - SYS_ADMIN
+    - SYS_RESOURCE
+  network_mode: host
+  environment:
+    - NB_SETUP_KEY={{ services.netbird.setup_key }}
+  volumes:
+    - {{ stack_config.config_path }}/netbird:/var/lib/netbird

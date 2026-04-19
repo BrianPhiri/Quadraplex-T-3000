@@ -12,9 +12,31 @@ bazarr:
     - {{ stack_config.media_path }}/tv:/tv
   ports:
     - "{{ services.bazarr.port }}:6767"
+{% if services.bazarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.bazarr.rule=Host(`{{ services.bazarr.traefik.host }}.{{ services.bazarr.traefik.domain }}`)
+    - traefik.http.routers.bazarr.entrypoints=https
+    - traefik.http.routers.bazarr.tls=true
+    - traefik.http.routers.bazarr-http.rule=Host(`{{ services.bazarr.traefik.host }}.{{ services.bazarr.traefik.domain }}`)
+    - traefik.http.routers.bazarr-http.entrypoints=http
+    - traefik.http.routers.bazarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.bazarr.loadbalancer.server.port=6767
+    - traefik.http.services.bazarr.loadbalancer.server.scheme=http
+{% endif %}
 {% if services.bazarr.networks is defined %}
   networks:
 {% for network in services.bazarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.bazarr.dnss is defined %}
+  dns:
+{% for dns in services.bazarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

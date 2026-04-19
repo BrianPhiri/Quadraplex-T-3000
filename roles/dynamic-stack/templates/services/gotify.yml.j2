@@ -1,0 +1,39 @@
+gotify:
+  image: gotify/server
+  container_name: gotify
+  restart: unless-stopped
+  ports:
+    - "{{ services.gotify.port }}:80"
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.data_path }}/gotify/data:/app/data
+{% if services.gotify.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.gotify.rule=Host(`{{ services.gotify.traefik.host }}.{{ services.gotify.traefik.domain }}`)
+    - traefik.http.routers.gotify.entrypoints=https
+    - traefik.http.routers.gotify.tls=true
+    - traefik.http.routers.gotify-http.rule=Host(`{{ services.gotify.traefik.host }}.{{ services.gotify.traefik.domain }}`)
+    - traefik.http.routers.gotify-http.entrypoints=http
+    - traefik.http.routers.gotify-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.gotify.loadbalancer.server.port=80
+    - traefik.http.services.gotify.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.gotify.networks is defined %}
+  networks:
+{% for network in services.gotify.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.gotify.dnss is defined %}
+  dns:
+{% for dns in services.gotify.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

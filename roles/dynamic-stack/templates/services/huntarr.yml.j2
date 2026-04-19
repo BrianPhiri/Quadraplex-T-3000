@@ -1,7 +1,6 @@
 huntarr:
   image: huntarr/huntarr:{{ services.huntarr.version }}
   container_name: huntarr
-  restart: unless-stopped
   environment:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
@@ -10,9 +9,32 @@ huntarr:
     - {{ stack_config.config_path }}/huntarr:/config
   ports:
     - "{{ services.huntarr.port }}:9705"
+
+{% if services.huntarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.huntarr.rule=Host(`{{ services.huntarr.traefik.host }}.{{ services.huntarr.traefik.domain }}`)
+    - traefik.http.routers.huntarr.entrypoints=https
+    - traefik.http.routers.huntarr.tls=true
+    - traefik.http.routers.huntarr-http.rule=Host(`{{ services.huntarr.traefik.host }}.{{ services.huntarr.traefik.domain }}`)
+    - traefik.http.routers.huntarr-http.entrypoints=http
+    - traefik.http.routers.huntarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.huntarr.loadbalancer.server.port=9705
+    - traefik.http.services.huntarr.loadbalancer.server.scheme=http
+{% endif %}
+	
 {% if services.huntarr.networks is defined %}
   networks:
 {% for network in services.huntarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+{% if services.huntarr.dnss is defined %}
+  dns:
+{% for dns in services.huntarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

@@ -1,0 +1,39 @@
+jellyfin_vue:
+  image: ghcr.io/jellyfin/jellyfin-vue:{{ services.jellyfin_vue.version }}
+  container_name: jellyfin_vue
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  ports:
+    - "{{ services.jellyfin_vue.port }}:80"
+{% if services.jellyfin_vue.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.jellyfin_vue.rule=Host(`{{ services.jellyfin_vue.traefik.host }}.{{ services.jellyfin_vue.traefik.domain }}`)
+    - traefik.http.routers.jellyfin_vue.entrypoints=https
+    - traefik.http.routers.jellyfin_vue.tls=true
+    - traefik.http.routers.jellyfin_vue-http.rule=Host(`{{ services.jellyfin_vue.traefik.host }}.{{ services.jellyfin_vue.traefik.domain }}`)
+    - traefik.http.routers.jellyfin_vue-http.entrypoints=http
+    - traefik.http.routers.jellyfin_vue-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.jellyfin_vue.loadbalancer.server.port=80
+    - traefik.http.services.jellyfin_vue.loadbalancer.server.scheme=http
+    - "traefik.docker.network=traefik_net"
+{% endif %}
+{% if services.jellyfin_vue.networks is defined %}
+  networks:
+{% for network in services.jellyfin_vue.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.jellyfin_vue.dnss is defined %}
+  dns:
+{% for dns in services.jellyfin_vue.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

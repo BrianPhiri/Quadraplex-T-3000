@@ -1,0 +1,39 @@
+heimdall:
+  image: lscr.io/linuxserver/heimdall:{{ services.heimdall.version }}
+  container_name: heimdall
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - ALLOW_INTERNAL_REQUESTS=false #optional
+  volumes:
+    - {{ stack_config.config_path }}/heimdall:/config
+  ports:
+    - "{{ services.heimdall.http }}:80"
+    - "{{ services.heimdall.https }}:443"
+{% if services.heimdall.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.heimdall.rule=Host(`{{ services.heimdall.traefik.host }}.{{ services.heimdall.traefik.domain }}`)
+    - traefik.http.routers.heimdall.entrypoints=https
+    - traefik.http.routers.heimdall.tls=true
+    - traefik.http.routers.heimdall-http.rule=Host(`{{ services.heimdall.traefik.host }}.{{ services.heimdall.traefik.domain }}`)
+    - traefik.http.routers.heimdall-http.entrypoints=http
+    - traefik.http.routers.heimdall-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.heimdall.loadbalancer.server.port=80
+    - traefik.http.services.heimdall.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.heimdall.networks is defined %}
+  networks:
+{% for network in services.heimdall.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.heimdall.dnss is defined %}
+  dns:
+{% for dns in services.heimdall.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+

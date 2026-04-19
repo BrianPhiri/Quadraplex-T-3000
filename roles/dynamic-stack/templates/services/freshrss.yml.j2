@@ -1,0 +1,39 @@
+freshrss:
+  image: lscr.io/linuxserver/freshrss:{{ services.freshrss.version }}
+  container_name: freshrss
+  restart: unless-stopped
+  ports:
+    - "{{ services.freshrss.port }}:80"
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/freshrss/:/config
+{% if services.freshrss.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.freshrss.rule=Host(`{{ services.freshrss.traefik.host }}.{{ services.freshrss.traefik.domain }}`)
+    - traefik.http.routers.freshrss.entrypoints=https
+    - traefik.http.routers.freshrss.tls=true
+    - traefik.http.routers.freshrss-http.rule=Host(`{{ services.freshrss.traefik.host }}.{{ services.freshrss.traefik.domain }}`)
+    - traefik.http.routers.freshrss-http.entrypoints=http
+    - traefik.http.routers.freshrss-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.freshrss.loadbalancer.server.port=80
+    - traefik.http.services.freshrss.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.freshrss.networks is defined %}
+  networks:
+{% for network in services.freshrss.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.freshrss.dnss is defined %}
+  dns:
+{% for dns in services.freshrss.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

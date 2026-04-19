@@ -1,0 +1,38 @@
+boxarr:
+  image: ghcr.io/iongpt/boxarr:{{ services.boxarr.version }}
+  container_name: boxarr
+  ports:
+    - {{ services.boxarr.port }}:8888
+  volumes:
+    - {{ stack_config.config_path }}/boxarr:/config
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+{% if services.boxarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.boxarr.rule=Host(`{{ services.boxarr.traefik.host }}.{{ services.boxarr.traefik.domain }}`)
+    - traefik.http.routers.boxarr.entrypoints=https
+    - traefik.http.routers.boxarr.tls=true
+    - traefik.http.routers.boxarr-http.rule=Host(`{{ services.boxarr.traefik.host }}.{{ services.boxarr.traefik.domain }}`)
+    - traefik.http.routers.boxarr-http.entrypoints=http
+    - traefik.http.routers.boxarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.boxarr.loadbalancer.server.port=8888
+    - traefik.http.services.boxarr.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.boxarr.networks is defined %}
+  networks:
+{% for network in services.boxarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.boxarr.dnss is defined %}
+  dns:
+{% for dns in services.boxarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+

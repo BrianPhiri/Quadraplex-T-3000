@@ -1,0 +1,65 @@
+nextcloud-db:
+  image: postgres:{{ services.nextcloud.db_version }}
+  container_name: nextcloud-db
+  restart: unless-stopped
+  volumes:
+    - {{  stack_config.data_path  }}/nextcloud/db:/var/lib/postgresql/data
+    - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+  environment:
+    - TZ={{ stack_config.timezone }}
+    - POSTGRES_USER={{ services.nextcloud.db.user }}
+    - POSTGRES_PASSWORD={{ services.nextcloud.db.password }}
+    - POSTGRES_DB={{ services.nextcloud.db.name }}
+    - POSTGRES_NON_ROOT_USER={{ services.nextcloud.db.user_non_root }}
+    - POSTGRES_NON_ROOT_PASSWORD={{ services.nextcloud.db.password_non_root }}
+  ports:
+    - 5433:5432
+{% if services.nextcloud.networks is defined %}
+  networks:
+{% for network in services.nextcloud.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+nextcloud:
+  image: nextcloud:{{ services.nextcloud.version }}
+  container_name: nextcloud
+  ports:
+    - {{ services.nextcloud.port }}:80
+  links:
+    - nextcloud-db
+  volumes:
+    - {{ stack_config.data_path }}/nextcloud/app/html:/var/www/html
+    - {{ stack_config.data_path }}/nextcloud/app/config:/var/www/html/config
+    - {{ stack_config.data_path }}/nextcloud/app/data:/var/www/data
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - NEXTCLOUD_UPDATE=1
+    - POSTGRES_PASSWORD={{ services.nextcloud.db.password }}
+    - POSTGRES_DB={{ services.nextcloud.db.name  }}
+    - POSTGRES_USER={{ services.nextcloud.db.user  }}
+    - POSTGRES_HOST=nextcloud-db
+{% if services.nextcloud.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.nextcloud.rule=Host(`{{ services.nextcloud.traefik.host }}.{{ services.nextcloud.traefik.domain }}`)
+    - traefik.http.routers.nextcloud.entrypoints=https
+    - traefik.http.routers.nextcloud.tls=true
+    - traefik.http.routers.nextcloud-http.rule=Host(`{{ services.nextcloud.traefik.host }}.{{ services.nextcloud.traefik.domain }}`)
+    - traefik.http.routers.nextcloud-http.entrypoints=http
+    - traefik.http.routers.nextcloud-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.nextcloud.loadbalancer.server.port=80
+    - traefik.http.services.nextcloud.loadbalancer.server.scheme=http
+{% endif %}
+
+{% if services.nextcloud.networks is defined %}
+  networks:
+{% for network in services.nextcloud.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+

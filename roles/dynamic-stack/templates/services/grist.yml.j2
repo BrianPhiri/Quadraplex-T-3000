@@ -1,0 +1,41 @@
+grist:
+  image: gristlabs/grist
+  container_name: grist
+  restart: unless-stopped
+  ports:
+    - "{{ services.grist.port }}:8484"
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - GRIST_SESSION_SECRET={{ services.grist.secret }}
+    - GRIST_DEFAULT_EMAIL={{ services.grist.email }}
+  volumes:
+    - {{ stack_config.data_path }}/grist/data:/persist
+{% if services.grist.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.grist.rule=Host(`{{ services.grist.traefik.host }}.{{ services.grist.traefik.domain }}`)
+    - traefik.http.routers.grist.entrypoints=https
+    - traefik.http.routers.grist.tls=true
+    - traefik.http.routers.grist-http.rule=Host(`{{ services.grist.traefik.host }}.{{ services.grist.traefik.domain }}`)
+    - traefik.http.routers.grist-http.entrypoints=http
+    - traefik.http.routers.grist-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.grist.loadbalancer.server.port=8484
+    - traefik.http.services.grist.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.grist.networks is defined %}
+  networks:
+{% for network in services.grist.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.grist.dnss is defined %}
+  dns:
+{% for dns in services.grist.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

@@ -1,0 +1,43 @@
+mylar3:
+  image: lscr.io/linuxserver/mylar3:{{ services.mylar.version }}
+  container_name: mylar3
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/mylar:/config
+    - {{ stack_config.media_path }}/books:/comics
+    - {{ stack_config.downloads_path }}:/downloads
+  ports:
+    - "{{ services.mylar.port }}:8090"
+{% if services.mylar.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.mylar.rule=Host(`{{ services.mylar.traefik.host }}.{{ services.mylar.traefik.domain }}`)
+    - traefik.http.routers.mylar.entrypoints=https
+    - traefik.http.routers.mylar.tls=true
+    - traefik.http.routers.mylar-http.rule=Host(`{{ services.mylar.traefik.host }}.{{ services.mylar.traefik.domain }}`)
+    - traefik.http.routers.mylar-http.entrypoints=http
+    - traefik.http.routers.mylar-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.mylar.loadbalancer.server.port=8090
+    - traefik.http.services.mylar.loadbalancer.server.scheme=http
+{% endif %}
+
+{% if services.mylar.networks is defined %}
+  networks:
+{% for network in services.mylar.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.mylar.dnss is defined %}
+  dns:
+{% for dns in services.mylar.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+

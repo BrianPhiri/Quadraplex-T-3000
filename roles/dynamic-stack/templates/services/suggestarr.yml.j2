@@ -10,10 +10,31 @@ suggestarr:
     - {{ stack_config.config_path }}/suggestarr:/app/config/config_files
   ports:
     - "{{ services.suggestarr.port }}:5000"
+{% if services.suggestarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.suggestarr.rule=Host(`{{ services.suggestarr.traefik.host }}.{{ services.suggestarr.traefik.domain }}`)
+    - traefik.http.routers.suggestarr.entrypoints=https
+    - traefik.http.routers.suggestarr.tls=true
+    - traefik.http.routers.suggestarr-http.rule=Host(`{{ services.suggestarr.traefik.host }}.{{ services.suggestarr.traefik.domain }}`)
+    - traefik.http.routers.suggestarr-http.entrypoints=http
+    - traefik.http.routers.suggestarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.suggestarr.loadbalancer.server.port=5000
+    - traefik.http.services.suggestarr.loadbalancer.server.scheme=http
+{% endif %}
 {% if services.suggestarr.networks is defined %}
   networks:
 {% for network in services.suggestarr.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
+
+{% if services.suggestarr.dnss is defined %}
+  dns:
+{% for dns in services.suggestarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
 

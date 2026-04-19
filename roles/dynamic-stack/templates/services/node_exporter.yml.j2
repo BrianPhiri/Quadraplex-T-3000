@@ -1,0 +1,15 @@
+node_exporter:
+  image: prom/node-exporter:{{ services.node_exporter.version }}
+  container_name: node_exporter
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  command:
+    - "--path.rootfs=/host"
+  pid: host
+  restart: unless-stopped
+  volumes:
+    - "/:/host:ro,rslave"
+  ports:
+    - "{{ services.node_exporter.port }}:9100"

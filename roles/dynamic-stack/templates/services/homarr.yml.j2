@@ -1,0 +1,39 @@
+homarr:
+  container_name: homarr
+  image: ghcr.io/homarr-labs/homarr:{{ services.homarr.version }}
+  volumes:
+    - {{ stack_config.data_path }}/homarr/appdata:/appdata
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - SECRET_ENCRYPTION_KEY={{ services.homarr.secret_key }}
+  ports:
+    - "{{ services.homarr.port }}:7575"
+{% if services.homarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.homarr.rule=Host(`{{ services.homarr.traefik.host }}.{{ services.homarr.traefik.domain }}`)
+    - traefik.http.routers.homarr.entrypoints=https
+    - traefik.http.routers.homarr.tls=true
+    - traefik.http.routers.homarr-http.rule=Host(`{{ services.homarr.traefik.host }}.{{ services.homarr.traefik.domain }}`)
+    - traefik.http.routers.homarr-http.entrypoints=http
+    - traefik.http.routers.homarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.homarr.loadbalancer.server.port=80
+    - traefik.http.services.homarr.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.homarr.networks is defined %}
+  networks:
+{% for network in services.homarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.homarr.dnss is defined %}
+  dns:
+{% for dns in services.homarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
+
+	
