@@ -9,7 +9,7 @@
       - "Condition 1 (Hostname match): {{ ansible_hostname in current_user.hosts }}"
       - "Condition 2 (Keyword 'all'): {{ 'all' in current_user.hosts }}"
       - "Condition 3 (Group intersection): {{ (group_names | intersect(current_user.hosts) | length > 0) }}"
-  when: current_user.hosts is defined # Only run if the hosts list exists
+  when: current_user.hosts is defined 
 
 - name: Check if current host is in the current user's specified hosts list
   set_fact:
