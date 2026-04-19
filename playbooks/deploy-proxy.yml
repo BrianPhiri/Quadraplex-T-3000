@@ -1,13 +1,14 @@
 ---
 - name: Deploy traefk 
-  hosts: "{{ target_host | default('home_servers') }}"
+  hosts: "{{ target_hosts }}"
   become: yes
   gather_facts: yes
   serial: "{{ deploy_serial | default(1) }}"
 
   vars_files:
-    - ../vars/traefik.yml
-    - ../vars/traefik-routes.yml
+    - ../vars/proxy/vault.yml
+    - ../vars/proxy/base.yml
+    - ../vars/proxy/traefik/traefik-routes.yml
 
   vars:
     stack_name: "proxy"
@@ -19,6 +20,8 @@
         msg:
           - "Deploying traefik to: {{ inventory_hostname }}"
           - " - Traefik: {{ proxy_services.traefik.enabled | default(false) }}"
+          - " - Domain : {{ domain }}"
+          - " - Dashboard: {{ proxy_services.traefik.dashboard.url }}"
       tags: always
 
   roles:

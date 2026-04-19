@@ -7,7 +7,9 @@
    
   vars_files:
     - ../vars/versions.yml
-    
+  vars:
+    docker_version: "5:28.5.0-1~ubuntu.25.04~plucky"
+   
   pre_tasks:
     - name: Show installation plan
       debug:
