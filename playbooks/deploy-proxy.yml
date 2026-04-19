@@ -1,5 +1,4 @@
 ---
-
 - name: Deploy Proxy stack
   hosts: "{{ target_hosts | default('proxy_servers') }}"
   become: yes
@@ -8,15 +7,9 @@
 
   vars_files:
     - ../vars/versions.yml
+    - ../vars/traefik.yml
 
   pre_tasks:
-    - name: Generate dot env
-      hosts: all
-      vars:
-        env_vars: "{{ lookup('community.general.dotenv', '.env') }}"
-      vars_files:
-        - vars/default.yml
-
     - name: Display deployment plan
       debug:
         msg:
@@ -70,22 +63,24 @@
     - role: proxy-stack
       tags: ['proxy']
       
-#  post_tasks:
-#    - name: Confirming services are running
-#      wait_for:
-#        port: "{{ item.port }}"
-#        host: "{{ ansible_host }}"
-#        delay: 10
-#        timeout: 300
-#      loop:
-#        - { service: "traefik", port: "{{ services.traefik.port }}" }
-#      when: services[item.service].enabled | default(true)
-#      
-#    - name: Display access information
-#      debug:
-#        msg:
-#          - "Proxy Stack deployed successfully!"
-#          - ""
-#          - "Service URLs:"
-#          - "  Traefik:   http://{{ ansible_host }}:{{ services.traefik.port }}"
-#      tags: always
+  post_tasks:
+    - name: Confirming services are running
+      wait_for:
+        port: "{{ item.port }}"
+        host: "{{ ansible_host }}"
+        delay: 10
+        timeout: 300
+      loop:
+        - { service: "traefik", port: "{{ proxy_stack.services.traefik.https }}" }
+      when: services[item.service].enabled | default(true)
+      
+    - name: Display access information
+      debug:
+        msg:
+          - "Traefik has been deployed successfully!"
+          - ""
+          - "Service URLs:"
+          - "  Domain:              https://{{ domain }}"
+          - "  Traefik:             https://{{ dashboard.host }}"
+          - "  Traefik dashboard:   https://{{ dashboard.host }}/dashboard"
+      tags: always

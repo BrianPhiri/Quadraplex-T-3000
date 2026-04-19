@@ -1,0 +1,23 @@
+---
+- name: Deploy Proxy stack
+  hosts: all
+  become: yes
+  gather_facts: yes
+  serial: " {{ deploy_serial | default(1) }}"
+
+  vars_files:
+    - ../vars/versions.yml
+
+  pre_tasks:
+    - name: Read .env file
+      vars:
+        env_data: "{{ lookup('community.general.read_env', '.env') }}"
+      debug:
+        var: env_data
+    - name: Display deployment plan
+      debug:
+        msg:
+          - "Deploying proxy stack to: {{ inventory_hostname }}"
+          - "{{ env_data.MY_DOMAIN }}"
+      tags: always
+      tags: always

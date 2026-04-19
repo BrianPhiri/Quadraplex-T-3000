@@ -19,5 +19,5 @@
   debug:
     msg:
       - "Proxy Stack Services:"
-      - "  Traefik:   http://{{ ansible_host }}:{{ services.Traefik.port }}"
+      - "  Traefik:   http://{{ ansible_host }}:{{ proxy_stack.services.traefik.http }}"
   tags: always

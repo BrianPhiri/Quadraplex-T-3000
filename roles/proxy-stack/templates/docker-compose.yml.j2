@@ -21,7 +21,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - {{ proxy_stack.config_path }}/traefik/config.yml:/traefik.yml:ro
+      - {{ proxy_stack.config_path }}/traefik/traefik.yml:/traefik.yml:ro
       - {{ proxy_stack.config_path }}/traefik/acme.json:/acme.json
       - {{ proxy_stack.config_path }}/traefik/config.yml:/config.yml:ro
     networks:

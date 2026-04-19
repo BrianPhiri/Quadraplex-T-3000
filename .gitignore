@@ -3,6 +3,8 @@
 .env.local
 .env.*.local
 
+./vars/traefik.yml
+
 # Mac
 .DS_Store
 
