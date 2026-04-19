@@ -1,0 +1,44 @@
+---
+api:
+  dashboard: {{ proxy_stack.traefik_dashboard_enabled | default('true') }}
+  debug: {{ proxy_stack.traefik_debug | default('true') }}
+
+entryPoints:
+  http:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+  https:
+    address: ":443"
+
+serversTransport:
+  insecureSkipVerify: {{ proxy_stack.traefik_insecure_skip_verify | default('true') }}
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    filename: /config.yml
+
+certificatesResolvers:
+  {{ proxy_stack.traefik_cert_resolver | default('cloudflare') }}:
+    acme:
+      email: {{ proxy_stack.traefik_acme_email }}
+      storage: acme.json
+      caServer: {{ proxy_stack.traefik_acme_server | default('https://acme-v02.api.letsencrypt.org/directory') }}
+      dnsChallenge:
+        provider: {{ proxy_stack.traefik_dns_provider | default('cloudflare') }}
+{% if proxy_stack.traefik_dns_disable_propagation_check | default(false) %}
+        disablePropagationCheck: true
+{% endif %}
+{% if proxy_stack.traefik_dns_delay_before_check is defined %}
+        delayBeforeCheck: {{ traefik_dns_delay_before_check }}
+{% endif %}
+        resolvers:
+{% for resolver in proxy_stack.traefik_dns_resolvers | default(['1.1.1.1:53', '1.0.0.1:53']) %}
+          - "{{ resolver }}"
+{% endfor %}

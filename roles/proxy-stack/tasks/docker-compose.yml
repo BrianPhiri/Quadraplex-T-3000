@@ -1,0 +1,52 @@
+---
+- name: Create Docker network for proxy stack
+  docker_network:
+    name: "{{ proxy_stack.network_name }}"
+    state: present
+
+- name: Stop existing proxy stack (if running)
+  community.docker.docker_compose_v2:
+    project_src: "{{ proxy_stack.base_path }}"
+    state: absent
+  ignore_errors: yes
+  tags: ['never', 'force-restart']
+
+- name: Start proxy stack with docker-compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ proxy_stack.base_path }}"
+    build: never
+    state: present
+    pull: missing
+    remove_orphans: yes
+  register: compose_result
+
+- name: Display docker-compose results
+  debug:
+    var: compose_result.services
+  when: compose_result.changed
+
+- name: Ensure all enabled services are running
+  docker_container_info:
+    name: "{{ item.key }}"
+  register: container_info
+  loop: "{{ proxy_stack.services | dict2items }}"
+  when: item.value.enabled | default(false)
+  failed_when: 
+    - container_info.exists
+    - container_info.container.State.Status != "running"
+
+- name: Create systemd service for proxy stack
+  template:
+    src: systemd/proxy-stack.service.j2
+    dest: /etc/systemd/system/proxy-stack.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - enable proxy stack service
+
+- name: Start and enable proxy stack service
+  systemd:
+    name: proxy-stack
+    state: started
+    enabled: yes
+    daemon_reload: yes

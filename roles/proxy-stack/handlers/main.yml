@@ -1,0 +1,25 @@
+---
+- name: restart proxy stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ proxy_stack.base_path }}"
+    state: present
+    pull: missing
+    remove_orphans: yes
+  listen: "restart proxy stack"
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+
+- name: enable proxy stack service
+  systemd:
+    name: proxy-stack
+    enabled: yes
+  listen: "enable proxy stack service"
+
+- name: stop proxy stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ proxy_stack.base_path }}"
+    state: absent
+  listen: "stop proxy stack"

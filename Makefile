@@ -2,6 +2,7 @@ include makefiles/docker.mk
 include makefiles/media.mk
 include makefiles/user.mk
 include makefiles/utility.mk 
+include makefiles/proxy.mk
 
 # Makefile - Docker Installation Commands
 .PHONY: help install-docker docker-info docker-test docker-cleanup
