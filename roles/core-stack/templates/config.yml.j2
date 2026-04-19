@@ -20,7 +20,7 @@ http:
         permanent: true
 
   routers:
-  {% for route in proxy_stack.traefik_routes | default([]) %}
+  {% for route in traefik_routes | default([]) %}
     {{ route.name }}:
       entryPoints:
       {% for entrypoint in route.entrypoints | default(['https']) %}
@@ -38,7 +38,7 @@ http:
   {% endfor %}
 
   services:
-  {% for service in proxy_stack.traefik_services | default([]) %}
+  {% for service in traefik_services | default([]) %}
     {{ service.name }}:
       loadBalancer:
         servers:

@@ -6,12 +6,11 @@ ai_stack:
   base_path: "{{ ai_stack_base_path }}"
   config_path: "{{ ai_stack_base_path }}/configs"
   data_path: "{{ ai_stack_base_path }}/data"
-  
-  timezone: "Africa/Nairobi"
-  # User configuration
-  user_id: 1000
-  group_id: 1000
-  
+
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+
   # Network
   network_name: "ai-net"
   
@@ -25,7 +24,7 @@ ai_stack:
     faster_whisper: "latest"
 
 # Service configuration
-services:
+ai_services:
   openWebUi:
     enabled: false
     port: 4000

@@ -1,24 +1,22 @@
 ---
-- name: restart docker stack
+- name: restart {{ stack_name }}
   community.docker.docker_compose_v2:
     project_src: "{{ stack_config.base_path }}"
     state: present
     pull: missing
     remove_orphans: yes
-  listen: "restart {{ stack_name }}"
 
 - name: reload systemd
   systemd:
     daemon_reload: yes
 
-- name: enable docker stack service
+- name: enable {{ stack_name }} service
   systemd:
     name: "{{ stack_name }}"
     enabled: yes
   listen: "enable {{ stack_name }} service"
 
-- name: stop docker stack
+- name: stop {{ stack_name }}
   community.docker.docker_compose_v2:
     project_src: "{{ stack_config.base_path }}"
     state: absent
-  listen: "stop {{ stack_name }}"

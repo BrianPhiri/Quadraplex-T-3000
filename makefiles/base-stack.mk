@@ -5,7 +5,7 @@ STACKS := \
 	automation:/opt/automation-stack:deploy-automation.yml \
 	media:/opt/media-stack:deploy-media.yml \
 	productivity:/opt/productivity-stack:deploy-productivity.yml \
-	spcialised:/opt/spcialised-stack:deploy-spcialised.yml \
+	specialised:/opt/specialised-stack:deploy-specialised.yml \
 	finance:/opt/finance-stack:deploy-finance.yml
 
 define make-deploy-target

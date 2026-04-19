@@ -13,7 +13,7 @@ ExecStop=/usr/bin/docker compose down
 ExecReload=/usr/bin/docker compose restart
 TimeoutStartSec=0
 
-User=media
+User={{ user }}
 Group=docker
 
 [Install]

@@ -1,4 +1,5 @@
 # Host users configuration
+user: "emmental"
 users_to_create:
   - name: "emmental"
     group: "emmental"
@@ -10,3 +11,10 @@ users_to_create:
 docker_users:
   - "{{ ansible_user }}"
   - "emmental"
+
+user_id: 1000
+group_id: 1000
+
+timezone: "Africa/Nairobi"
+
+
