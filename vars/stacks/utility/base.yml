@@ -7,12 +7,14 @@ utility_stack:
   data_path: "{{ utility_systems_stack_base_path }}/data"
   media_path: "/mnt/media"
 
+  # User configuration - flexible fallback to ansible_user if user not specified
+  preferred_user: "{{ user | default(ansible_user) }}"
   user_id: "{{ user_id | default('1000')}}"
   group_id: "{{ group_id | default('1000')}}"
   timezone: "{{ timezone | default('Africa/Nairobi')}}"
-  
+
   stack_domain: "{{ domain }}"
-  
+
   # Network
   network_configs:
     utility_net:
@@ -21,7 +23,7 @@ utility_stack:
     traefik_net:
       name: traefik_net
       external: true
-  
+
   # Container versions (can be overridden per environment)
   versions:
     portainer: "2.33.0"
@@ -39,7 +41,7 @@ utility_stack:
     node_exporter: "latest"
     netbird: "latest"
     homeassistant: "stable"
-    n8n: 
+    n8n:
       app: "1.120.3"
       postgres: "17-alpine"
 
@@ -55,10 +57,10 @@ utility_services:
     port: 9100
     version: "{{ utility_stack.versions.node_exporter | default('latest') }}"
   netbird:
-    enabled: true 
+    enabled: true
     version: "{{ utility_stack.versions.netbird | default('latest') }}"
     hostname: hive
-    setup_key: "{{ netbird_setup_key }}"
+    setup_key: "{{ netbird_setup_key | default('') }}"
   portainer:
     enabled: false
     port: 9443
@@ -66,7 +68,7 @@ utility_services:
     networks:
       - traefik_net
     traefik:
-      enabled: true 
+      enabled: true
       host: "portainer"
       domain: "{{ utility_stack.stack_domain }}"
   uptime_kuma:
@@ -74,21 +76,21 @@ utility_services:
     port: 3001
     version: "{{ utility_stack.versions.uptime_kuma | default('1') }}"
     dnss:
-      - "{{ custom_dns }}"
+      - "{{ custom_dns | default('1.1.1.1') }}"
     networks:
       - traefik_net
     traefik:
-      enabled: true 
+      enabled: true
       host: "uptime"
       domain: "{{ utility_stack.stack_domain }}"
   vaultwarden:
-    enabled: true 
+    enabled: true
     port: 5554
     version: "{{ utility_stack.versions.vaultwarden | default('latest') }}"
     networks:
       - traefik_net
     traefik:
-      enabled: true 
+      enabled: true
       host: "vault"
       domain: "{{ utility_stack.stack_domain }}"
   filestash:
@@ -98,15 +100,15 @@ utility_services:
     networks:
       - traefik_net
     traefik:
-      enabled: false 
+      enabled: false
       host: "filestash"
       domain: "{{ utility_stack.stack_domain }}"
   gotify:
-    enabled: true 
+    enabled: true
     port: 411
     version: "{{ utility_stack.versions.gotify | default('latest') }}"
     dnss:
-      - "{{ custom_dns }}"
+      - "{{ custom_dns | default('1.1.1.1') }}"
     networks:
       - traefik_net
     traefik:
@@ -120,30 +122,30 @@ utility_services:
     networks:
       - traefik_net
     traefik:
-      enabled: true 
+      enabled: true
       host: "home"
       domain: "{{ domain }}"
   glance:
-    enabled: false 
+    enabled: false
     port: 8082
     version: "{{ utility_stack.versions.glance | default('latest') }}"
     networks:
       - traefik_net
     traefik:
-      enabled: false 
+      enabled: false
       host: "view"
       domain: "{{ utility_stack.stack_domain }}"
-  n8n:     
-    enabled: true 
+  n8n:
+    enabled: true
     port: 5678
-    encryption_key: "{{ vault_n8n_encryption_key }}"
+    encryption_key: "{{ vault_n8n_encryption_key | default('changeme') }}"
     version: "{{ utility_stack.versions.n8n.app | default('latest') }}"
     db_version: "{{ utility_stack.versions.n8n.postgres | default('latest') }}"
     db:
       user: "carlos"
-      password: "{{ vault_n8n_db_password }}"
+      password: "{{ vault_n8n_db_password | default('changeme') }}"
       user_non_root: "barb"
-      password_non_root: "{{ vault_n8n_db_password_non_root }}"
+      password_non_root: "{{ vault_n8n_db_password_non_root | default('changeme') }}"
       name: "my_n8n"
     networks:
       - traefik_net
@@ -152,18 +154,16 @@ utility_services:
       host: "n8n"
       domain: "{{ domain }}"
   grist:
-    enabled: true 
+    enabled: true
     port: 8484
     version: "{{ utility_stack.versions.gotify | default('latest') }}"
-    secret: "{{ vault_grist_secret }}"
+    secret: "{{ vault_grist_secret | default('changeme') }}"
     email: "ops@brianphiri.com"
     dnss:
-      - "{{ custom_dns }}"
+      - "{{ custom_dns | default('1.1.1.1') }}"
     networks:
       - traefik_net
     traefik:
       enabled: true
       host: "sheets"
       domain: "{{ domain }}"
-
-

@@ -6,16 +6,18 @@ dns_stack:
   config_path: "{{ dns_stack_base_path }}/configs"
   data_path: "{{ dns_stack_base_path }}/data"
 
+  # User configuration - flexible fallback to ansible_user if user not specified
+  preferred_user: "{{ user | default(ansible_user) }}"
   user_id: "{{ user_id | default('1000')}}"
   group_id: "{{ group_id | default('1000')}}"
   timezone: "{{ timezone | default('Africa/Nairobi')}}"
-  
+
   # Network
   network_configs:
     dns_net:
-      name: dns_net 
+      name: dns_net
       driver: bridge
- 
+
   versions:
     adguard_home: "latest"
     cadvisor: "latest"
@@ -25,11 +27,11 @@ dns_stack:
 # Service configuration
 dns_services:
   cadvisor:
-    enabled: true
+    enabled: false
     port: 8081
     version: "{{ core_stack.versions.cadvisor | default('latest') }}"
   node_exporter:
-    enabled: true
+    enabled: false
     port: 9100
     version: "{{ core_stack.versions.node_exporter | default('latest') }}"
   adguard_home:
@@ -38,8 +40,7 @@ dns_services:
     https: 8443
     version: "{{ core_stack.versions.adguard_home | default('latest') }}"
   netbird:
-    enabled: true 
+    enabled: false
     version: "{{ core_stack.versions.netbird | default('latest') }}"
     hostname: dns
-    setup_key: "{{ netbird_setup_key }}"
-
+    setup_key: "{{ netbird_setup_key | default('') }}"
