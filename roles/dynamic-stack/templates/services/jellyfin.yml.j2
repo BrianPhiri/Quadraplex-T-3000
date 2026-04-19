@@ -1,0 +1,18 @@
+jellyfin:
+  image: lscr.io/linuxserver/jellyfin:{{ services.jellyfin.version }}
+  container_name: jellyfin
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/jellyfin:/config
+    - {{ stack_config.media_path }}/movies:/data/movies:ro
+    - {{ stack_config.media_path }}/tv:/data/tvshows:ro
+    - {{ stack_config.media_path }}/music:/data/music:ro
+  ports:
+    - "{{ services.jellyfin.port }}:8096"
+    - 8920:8920
+    - 7359:7359/udp
+    - 1900:1900/udp

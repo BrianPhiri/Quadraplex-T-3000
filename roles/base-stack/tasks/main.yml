@@ -1,10 +1,14 @@
-# This role expects these variables to be passed:
-# - stack_name: Name of the stack (e.g., "productivity-stack")
-# - stack_config: Dict with base_path, config_path, data_path, user_id, group_id, network_name
-# - stack_services: List of service names (e.g., ["homeassistant", "n8n"])
-# - services: Dict of service configs with .enabled and .port
-#
-#
+- name: Get enabled services from configuration
+  set_fact:
+    stack_services: "{{ services }}"
+
+- name: Display deployment info
+  debug:
+    msg:
+      - "Stack: {{ stack_name }}"
+      - "Services to deploy: {{ stack_services | join(', ') }}"
+      - "Total services: {{ stack_services | length }}"
+
 - name: Include directory creation tasks
   include_tasks: directories.yml
   tags: ['directories']

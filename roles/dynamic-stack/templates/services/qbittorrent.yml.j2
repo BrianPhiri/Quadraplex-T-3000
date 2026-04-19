@@ -1,0 +1,16 @@
+qbittorrent:
+  image: lscr.io/linuxserver/qbittorrent:{{ services.qbittorrent.version }}
+  container_name: qbittorrent
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - WEBUI_PORT={{ services.qbittorrent.port }}
+  volumes:
+    - {{ stack_config.config_path }}/qbittorrent:/config
+    - {{ stack_config.downloads_path }}:/downloads
+  ports:
+    - "{{ services.qbittorrent.port }}:{{ services.qbittorrent.port }}"
+    - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}"
+    - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}/udp"

@@ -1,5 +1,0 @@
-n8n_postgres_user: "postgres"
-n8n_postgres_password: "supersecurepassword"
-n8n_postgres_db: "n8n_database"
-n8n_postgres_non_root_user: "n8n_user"
-n8n_postgres_non_root_password: "n8n_user_password"

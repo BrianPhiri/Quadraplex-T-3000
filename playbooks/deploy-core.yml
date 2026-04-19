@@ -7,52 +7,14 @@
 
   vars_files:
     - ../vars/versions.yml
-    - ../vars/traefik.yml
-    - ../vars/traefik-routes.yml
 
-  pre_tasks:
-    - name: Display deployment plan
-      debug:
-        msg:
-          - "Deploying core system stack to: {{ inventory_hostname }}"
-          - "Services to deploy:"
-          - " - Traefik: {{ core_services.traefik.enabled | default(false) }}"
-          - " - Portainer: {{ core_services.portainer.enabled | default(false) }}"
-          - " - Grafana: {{ core_services.grafana.enabled | default(false) }}"
-          - " - Uptime kuma: {{ core_services.uptime_kuma.enabled | default(false) }}"
-          - " - Filebrowser: {{ core_services.filebrowser.enabled | default(false) }}"
-          - " - Crowdsec: {{ core_services.crowdsec.enabled | default(false) }}"
-          - " - Wireshark: {{ core_services.wireshark.enabled | default(false) }}"
-          - " - Adguard home: {{ core_services.adguard_home.enabled | default(false) }}"
-      tags: always
-
+  vars:
+    stack_name: "core-stack"
+    services: "{{ core_services }}"
+    stack: "{{ core_stack }}"
+ 
   roles:
     - role: pre-checks
-      tags: ["core-systems-pre-check"]
-    - role: core-stack
+      tags: ["core-pre-checks"]
+    - role: dynamic-stack
       tags: ['core']
-
-#  post_tasks:
-#    - name: Confirming services are running
-#      wait_for:
-#        port: "{{ item.port }}"
-#        host: "{{ ansible_host }}"
-#        delay: 10
-#        timeout: 300
-#      loop:
-#        - { service: "portainer", port: "{{ services.portainer.port }}"}
-#        - { service: "filebrowser", port: "{{ services.filebrowser.port }}"}
-#        - { service: "uptime_kuma", port: "{{ services.uptime_kuma.port }}"}
-#        - { service: "grafana", port: "{{ services.grafana.port }}"}
-#      when: services[item.service].enabled | default(true)
-#      
-#    - name: Display access information
-#      debug:
-#        msg:
-#          - "core_system stack deployed successfully"
-#          - ""
-#          - "Service URLs:"
-#          - "  Portainer:    http://{{ ansible_host }}:{{ services.portainer.port }}"
-#          - "  Filebrowser:    http://{{ ansible_host }}:{{ services.filebrowser.port }}"
-#          - "  Uptime-kuma:    http://{{ ansible_host }}:{{ services.uptime_kuma.port }}"
-#      tags: always

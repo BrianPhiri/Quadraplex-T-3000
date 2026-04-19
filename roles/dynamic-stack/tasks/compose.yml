@@ -1,0 +1,77 @@
+---
+- name: Collect required networks from enabled services
+  set_fact:
+    required_networks: >-
+      {{
+        stack_services
+        | map('extract', services)
+        | selectattr('networks', 'defined')
+        | map(attribute='networks')
+        | map('list')
+        | flatten
+        | unique
+        | list
+      }}
+  when: services.values() | selectattr('networks', 'defined') | list | length > 0
+
+- name: Set default network if none specified
+  set_fact:
+    required_networks: ['{{ stack_name }}-network']
+  when: required_networks is not defined or required_networks | length == 0
+
+- name: Initialize compose services
+  set_fact:
+    compose_services: {}
+
+- name: Debug template path
+  debug:
+    msg: "Looking for template: {{ stack_role_path }}/templates/services/{{ item }}.yml.j2"
+  loop: "{{ enabled_services }}"
+
+- name: Load service template content
+  set_fact:
+    service_template_content: "{{ lookup('template', template_path) | from_yaml }}"
+  vars:
+    template_path: "{{ stack_role_path }}/templates/services/{{ item }}.yml.j2"
+  loop: "{{ enabled_services }}"
+  register: service_templates
+
+- name: Build compose services dictionary
+  set_fact:
+    compose_services: "{{ compose_services | combine(item.ansible_facts.service_template_content) }}"
+  loop: "{{ service_templates.results }}"
+
+- name: Build networks configuration
+  set_fact:
+    compose_networks: {}
+
+- name: Add networks
+  set_fact:
+    compose_networks: "{{ compose_networks | combine({item: {'driver': 'bridge'}}) }}"
+  loop: "{{ required_networks }}"
+
+- name: Build final docker-compose structure
+  set_fact:
+    compose_content:
+      services: "{{ compose_services }}"
+      networks: "{{ compose_networks }}"
+
+- name: Ensure stack directory exists
+  file:
+    path: "{{ stack_config.base_path }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ stack_config.user_id | default(omit) }}"
+    group: "{{ stack_config.group_id | default(omit) }}"
+
+- name: Write docker-compose file
+  copy:
+    content: "{{ compose_content | to_nice_yaml(indent=2, width=1000) }}"
+    dest: "{{ stack_config.base_path }}/docker-compose.yml"
+    mode: '0644'
+    backup: yes
+  register: compose_file_written
+
+- name: Display compose file location
+  debug:
+    msg: "Docker-compose file written to: {{ stack_config.base_path }}/docker-compose.yml"

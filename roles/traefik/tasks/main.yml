@@ -1,0 +1,25 @@
+---
+- name: Include directory creation tasks
+  include_tasks: directories.yml
+  tags: ['proxy', 'directories']
+
+- name: Include configuration tasks
+  include_tasks: configs.yml
+  tags: ['proxy', 'configs']
+
+- name: Include docker-compose deployment
+  include_tasks: docker-compose.yml
+  tags: ['proxy', 'deploy']
+
+- name: Include verification tasks
+  include_tasks: verify.yml
+  tags: ['proxy', 'verify']
+
+- name: Display proxy stack URLs
+  debug:
+    msg:
+      - "Proxy Stack Services:"
+      - "  Traefik:   https://{{ traefik_dashboard_host }}"
+  tags: always
+
+

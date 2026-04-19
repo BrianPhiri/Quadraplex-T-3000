@@ -57,12 +57,12 @@
 
 - name: Create systemd service for stack
   template:
-    src: "{{ stack_systemd_template | default(role_path + '/templates/systemd/docker-stack.service.j2') }}"
+    src: "{{ stack_systemd_template | default(role_path + '/templates/systemd/stack.service.j2') }}"
     dest: "/etc/systemd/system/{{ stack_name }}.service"
     mode: '0644'
   notify:
     - reload systemd
-    - "enable {{ stack_name }} service"
+#    - "enable {{ stack_name }} service"
 
 - name: Start and enable stack service
   systemd:

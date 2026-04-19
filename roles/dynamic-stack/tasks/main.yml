@@ -1,0 +1,25 @@
+---
+- name: Set stack-specific variables
+  set_fact:
+    stack_role_path: "{{ role_path }}"
+    stack_services: "{{ services }}"
+
+- name: Get enabled services dynamically
+  set_fact:
+    enabled_services: "{{ stack_services | dict2items | selectattr('value.enabled', 'equalto', true) | map(attribute='key') | list }}"
+
+
+- name: Generate docker-compose file
+  include_tasks: compose.yml
+  vars:
+    stack_config: "{{ stack }}"
+    stack_path: "{{ stack_role_path }}"
+    stack_config: "{{ stack }}"
+
+- name: Deploy media stack using common docker-stack role
+  include_role:
+    name: base-stack
+  vars:
+    stack_config: "{{ stack }}"
+    stack_systemd_template: "{{ stack_role_path }}/templates/systemd/stack.service.j2"
+    services: "{{ enabled_services }}"
