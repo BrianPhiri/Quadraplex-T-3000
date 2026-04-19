@@ -32,7 +32,7 @@ core_stack:
 # Service configuration
 core_services:
   adguard_home:
-    enabled: false
+    enabled: true
     port: 80
     version: "{{ core_stack.versions.adguard_home | default('latest') }}"
   traefik:
