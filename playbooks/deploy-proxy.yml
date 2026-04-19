@@ -1,4 +1,5 @@
 ---
+
 - name: Deploy Proxy stack
   hosts: "{{ target_hosts | default('proxy_servers') }}"
   become: yes
@@ -9,6 +10,13 @@
     - ../vars/versions.yml
 
   pre_tasks:
+    - name: Generate dot env
+      hosts: all
+      vars:
+        env_vars: "{{ lookup('community.general.dotenv', '.env') }}"
+      vars_files:
+        - vars/default.yml
+
     - name: Display deployment plan
       debug:
         msg:
