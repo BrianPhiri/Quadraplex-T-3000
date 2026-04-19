@@ -29,9 +29,9 @@
     group: "{{ stack_group_id }}"
     mode: '0755'
   loop: "{{ stack_services }}"
-  when: 
+  when:
     - services[item].enabled | default(true)
-    - item in ['jellyseerr', 'sonarr', 'radarr', 'prowlarr', 'lidarr', 'bazarr']
+    - item in ['seerr', 'sonarr', 'radarr', 'prowlarr', 'lidarr', 'bazarr']
 
 - name: Create service-specific data directories
   file:

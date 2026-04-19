@@ -1,0 +1,38 @@
+seerr:
+  image: ghcr.io/seerr-team/seerr:{{ services.seerr.version }}
+  container_name: seerr
+  restart: unless-stopped
+  init: true
+  environment:
+    - LOG_LEVEL=info
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/seerr:/app/config
+  ports:
+    - "{{ services.seerr.port }}:5055"
+{% if services.seerr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.seerr.rule=Host(`{{ services.seerr.traefik.host }}.{{ services.seerr.traefik.domain }}`)
+    - traefik.http.routers.seerr.entrypoints=https
+    - traefik.http.routers.seerr.tls=true
+    - traefik.http.routers.seerr-http.rule=Host(`{{ services.seerr.traefik.host }}.{{ services.seerr.traefik.domain }}`)
+    - traefik.http.routers.seerr-http.entrypoints=http
+    - traefik.http.routers.seerr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.seerr.loadbalancer.server.port=5055
+    - traefik.http.services.seerr.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.seerr.networks is defined %}
+  networks:
+{% for network in services.seerr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
+{% if services.seerr.dnss is defined %}
+  dns:
+{% for dns in services.seerr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
