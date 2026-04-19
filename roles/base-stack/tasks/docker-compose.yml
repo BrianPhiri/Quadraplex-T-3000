@@ -1,9 +1,4 @@
 ---
-- name: Create Docker network for stack
-  docker_network:
-    name: "{{ stack_config.network_name }}"
-    state: present
-
 - name: Pull Docker images for stack (optional)
   docker_image:
     name: "{{ services[item].image }}"

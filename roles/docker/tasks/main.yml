@@ -1,3 +1,7 @@
+- name: Get docker version configuration
+  set_fact:
+    docker_version: "{{ docker_version | default('5:28.5.0-1~ubuntu.25.04~plucky')}}"
+
 - name: Include installation tasks
   include_tasks: install.yml
   tags: ['docker', 'install']

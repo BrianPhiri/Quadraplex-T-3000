@@ -40,11 +40,4 @@
     state: latest
   become: yes
 
-- name: Show active Python interpreter
-  ansible.builtin.command: "{{ ansible_python_interpreter }} --version"
-  register: py_ver
-
-- debug:
-    var: py_ver.stdout
-
 
