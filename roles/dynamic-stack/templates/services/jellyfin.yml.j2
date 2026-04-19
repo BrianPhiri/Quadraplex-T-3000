@@ -16,3 +16,10 @@ jellyfin:
     - 8920:8920
     - 7359:7359/udp
     - 1900:1900/udp
+{% if services.jellyfin.networks is defined %}
+  networks:
+{% for network in services.jellyfin.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

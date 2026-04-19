@@ -1,0 +1,20 @@
+kavita:
+  image: lscr.io/linuxserver/kavita:{{ services.kavita.version }}
+  container_name: kavita
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/kavita:/config
+    - {{ stack_config.data_path }}/kavita:/data
+  ports:
+    - "{{ services.kavita.port }}:5000"
+{% if services.kavita.networks is defined %}
+  networks:
+{% for network in services.kavita.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

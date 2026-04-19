@@ -1,0 +1,20 @@
+bazarr:
+  image: lscr.io/linuxserver/bazarr:{{ services.bazarr.version }}
+  container_name: bazarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/bazarr:/config
+    - {{ stack_config.media_path }}/movies:/movies
+    - {{ stack_config.media_path }}/tv:/tv
+  ports:
+    - "{{ services.bazarr.port }}:6767"
+{% if services.bazarr.networks is defined %}
+  networks:
+{% for network in services.bazarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}

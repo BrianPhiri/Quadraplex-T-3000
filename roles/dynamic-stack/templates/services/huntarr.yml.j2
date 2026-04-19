@@ -1,0 +1,18 @@
+huntarr:
+  image: huntarr/huntarr:{{ services.huntarr.version }}
+  container_name: huntarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/huntarr:/config
+  ports:
+    - "{{ services.huntarr.port }}:9705"
+{% if services.huntarr.networks is defined %}
+  networks:
+{% for network in services.huntarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}

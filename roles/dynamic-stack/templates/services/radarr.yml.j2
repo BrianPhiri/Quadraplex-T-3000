@@ -1,0 +1,21 @@
+radarr:
+  image: lscr.io/linuxserver/radarr:{{ services.radarr.version }}
+  container_name: radarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/radarr:/config
+    - {{ stack_config.media_path }}/movies:/movies
+    - {{ stack_config.downloads_path }}:/downloads
+  ports:
+    - "{{ services.radarr.port }}:7878"
+{% if services.radarr.networks is defined %}
+  networks:
+{% for network in services.radarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

@@ -14,3 +14,10 @@ qbittorrent:
     - "{{ services.qbittorrent.port }}:{{ services.qbittorrent.port }}"
     - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}"
     - "{{ services.qbittorrent.peer_port }}:{{ services.qbittorrent.peer_port }}/udp"
+{% if services.qbittorrent.networks is defined %}
+  networks:
+{% for network in services.qbittorrent.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

@@ -10,3 +10,10 @@ prowlarr:
     - {{ stack_config.config_path }}/prowlarr:/config
   ports:
     - "{{ services.prowlarr.port }}:9696"
+{% if services.prowlarr.networks is defined %}
+  networks:
+{% for network in services.prowlarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+

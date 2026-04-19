@@ -1,0 +1,21 @@
+lidarr:
+  image: lscr.io/linuxserver/lidarr:{{ services.lidarr.version }}
+  container_name: lidarr
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/lidarr:/config
+    - {{ stack_config.media_path }}/music:/music
+    - {{ stack_config.downloads_path}}:/downloads
+  ports:
+    - "{{ services.lidarr.port }}:8686"
+{% if services.lidarr.networks is defined %}
+  networks:
+{% for network in services.lidarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+
