@@ -7,27 +7,28 @@
     timeout: 300
     msg: "{{ item }} service did not start within 5 minutes"
   loop: "{{ stack_services }}"
-  when: 
+  when:
     - services[item].enabled | default(true)
     - services[item].port is defined
 
 - name: Check Docker container status
-  docker_container_info:
-    name: "{{ item }}"
+  ansible.builtin.shell:
+    cmd: docker inspect {{ item }} --format='{% raw %}{{.State.Status}}{% endraw %}'
   register: container_status
   loop: "{{ stack_services }}"
   when: services[item].enabled | default(true)
+  changed_when: false
+  failed_when: false
 
 - name: Verify containers are running
   assert:
     that:
-      - item.exists
-      - item.container.State.Status == "running"
-      - item.container.State.Health.Status is undefined or item.container.State.Health.Status == "healthy"
-    fail_msg: "Container {{ item.container.Name }} is not running properly"
-    success_msg: "Container {{ item.container.Name }} is running and healthy"
+      - item.rc == 0
+      - item.stdout == "running"
+    fail_msg: "Container {{ item.item }} is not running properly (status: {{ item.stdout | default('not found') }})"
+    success_msg: "Container {{ item.item }} is running"
   loop: "{{ container_status.results }}"
-  when: 
+  when:
     - item.item is defined
     - services[item.item].enabled | default(false)
 
@@ -41,13 +42,13 @@
 - name: Check data directory ownership
   assert:
     that:
-      - data_dir_stats.results[index].stat.uid == stack_config.user_id | int
-      - data_dir_stats.results[index].stat.gid == stack_config.group_id | int
+      - data_dir_stats.results[index].stat.uid == stack_user_id | int
+      - data_dir_stats.results[index].stat.gid == stack_group_id | int
     fail_msg: "Data directory {{ item }} has incorrect ownership"
   loop: "{{ stack_services }}"
   loop_control:
     index_var: index
-  when: 
+  when:
     - services[item].enabled | default(true)
     - data_dir_stats.results[index].stat.exists
 

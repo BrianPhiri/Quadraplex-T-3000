@@ -12,6 +12,7 @@
       - ca-certificates
       - curl
       - software-properties-common
+      - python3-docker  # Required for Ansible Docker modules
     state: present
     update_cache: yes
 

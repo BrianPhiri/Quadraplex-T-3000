@@ -3,8 +3,8 @@
   template:
     src: docker-compose.yml.j2
     dest: "{{ proxy_stack.base_path }}/docker-compose.yml"
-    owner: "{{ proxy_stack.user_id }}"
-    group: "{{ proxy_stack.group_id }}"
+    owner: "{{ proxy_stack_runtime_user }}"
+    group: "{{ proxy_stack_runtime_group }}"
     mode: '0644'
     backup: yes
   notify: restart proxy stack
@@ -13,8 +13,8 @@
   template:
     src: .env.j2
     dest: "{{ proxy_stack.base_path }}/.env"
-    owner: "{{ proxy_stack.user_id }}"
-    group: "{{ proxy_stack.group_id }}"
+    owner: "{{ proxy_stack_runtime_user }}"
+    group: "{{ proxy_stack_runtime_group }}"
     mode: '0600'
     backup: yes
   notify: restart proxy stack
@@ -23,8 +23,8 @@
   template:
     src: traefik.yml.j2
     dest: "{{ proxy_stack.config_path }}/traefik/traefik.yml"
-    owner: "{{ proxy_stack.user_id }}"
-    group: "{{ proxy_stack.group_id }}"
+    owner: "{{ proxy_stack_runtime_user }}"
+    group: "{{ proxy_stack_runtime_group }}"
     mode: '0644'
     backup: yes
   notify: restart proxy stack
@@ -33,8 +33,8 @@
   template:
     src: config.yml.j2
     dest: "{{ proxy_stack.config_path }}/traefik/config.yml"
-    owner: "{{ proxy_stack.user_id }}"
-    group: "{{ proxy_stack.group_id }}"
+    owner: "{{ proxy_stack_runtime_user }}"
+    group: "{{ proxy_stack_runtime_group }}"
     mode: '0644'
     backup: yes
   notify: restart proxy stack
@@ -51,6 +51,6 @@
 - name: Set proper ownership for all config files
   file:
     path: "{{ proxy_stack.config_path }}"
-    owner: "{{ proxy_stack.user_id }}"
-    group: "{{ proxy_stack.group_id }}"
+    owner: "{{ proxy_stack_runtime_user }}"
+    group: "{{ proxy_stack_runtime_group }}"
     recurse: yes

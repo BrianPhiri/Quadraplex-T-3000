@@ -2,12 +2,50 @@
   set_fact:
     stack_services: "{{ services }}"
 
+- name: Check if preferred user exists
+  shell: "getent passwd {{ stack_config.preferred_user }}"
+  register: user_check
+  ignore_errors: yes
+  changed_when: false
+  when: stack_config.preferred_user is defined
+
+- name: Set actual runtime user
+  set_fact:
+    stack_runtime_user: "{{ stack_config.preferred_user if (stack_config.preferred_user is defined and user_check is defined and user_check.rc == 0) else ansible_user }}"
+    stack_runtime_group: "{{ stack_config.group | default('docker') }}"
+
+- name: Display user configuration
+  debug:
+    msg:
+      - "Preferred user: {{ stack_config.preferred_user | default('not specified') }}"
+      - "Runtime user: {{ stack_runtime_user }}"
+      - "Runtime group: {{ stack_runtime_group }}"
+
 - name: Display deployment info
   debug:
     msg:
       - "Stack: {{ stack_name }}"
       - "Services to deploy: {{ stack_services | join(', ') }}"
       - "Total services: {{ stack_services | length }}"
+
+- name: Get runtime user UID
+  shell: "id -u {{ stack_runtime_user }}"
+  register: runtime_uid
+  changed_when: false
+
+- name: Get runtime group GID
+  shell: "getent group {{ stack_runtime_group }} | cut -d: -f3"
+  register: runtime_gid
+  changed_when: false
+
+- name: Set runtime UID/GID facts
+  set_fact:
+    stack_user_id: "{{ runtime_uid.stdout }}"
+    stack_group_id: "{{ runtime_gid.stdout }}"
+
+- name: Update stack_config with resolved user/group IDs
+  set_fact:
+    stack_config: "{{ stack_config | combine({'user_id': stack_user_id, 'group_id': stack_group_id}) }}"
 
 - name: Include directory creation tasks
   include_tasks: directories.yml

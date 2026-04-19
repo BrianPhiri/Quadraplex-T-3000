@@ -1,8 +1,8 @@
 ---
 - name: Create Docker network for proxy stack
-  docker_network:
-    name: "{{ proxy_stack.network_name }}"
-    state: present
+  ansible.builtin.shell:
+    cmd: docker network create {{ proxy_stack.network_name }} || true
+  changed_when: false
 
 - name: Check if docker-compose.yml exists
   ansible.builtin.stat:
@@ -31,14 +31,15 @@
   when: compose_result.changed
 
 - name: Ensure all enabled services are running
-  docker_container_info:
-    name: "{{ item.key }}"
+  ansible.builtin.shell:
+    cmd: docker inspect {{ item.key }} --format='{% raw %}{{.State.Status}}{% endraw %}'
   register: container_info
   loop: "{{ proxy_stack.services | dict2items }}"
   when: item.value.enabled | default(false)
-  failed_when: 
-    - container_info.exists
-    - container_info.container.State.Status != "running"
+  changed_when: false
+  failed_when:
+    - container_info.rc == 0
+    - container_info.stdout != "running"
 
 - name: Create systemd service for proxy stack
   template:

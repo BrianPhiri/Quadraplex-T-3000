@@ -1,8 +1,6 @@
 ---
-# Docker package versions
-docker_version: "5:28.5.2-1~ubuntu.25.04~plucky"
-containerd_version: "1.7.28-1~ubuntu.25.04~plucky"
-docker_compose_version: "2.21.0"
+# Note: docker_version is now determined dynamically based on Ubuntu version
+# See vars/versions.yml and roles/docker/tasks/main.yml for version configuration
 
 # Installation options
 install_compose_standalone: true
@@ -59,7 +57,7 @@ docker_metrics_address: ""  # Set to "127.0.0.1:9323" to enable
 docker_default_address_pools:
   - base: "172.30.0.0/16"
     size: 24
-  - base: "172.31.0.0/16" 
+  - base: "172.31.0.0/16"
     size: 24
 
 # Service overrides (empty by default)

@@ -12,7 +12,7 @@
     stack_name: "{{ stack_type }}-stack"
     services: "{{ lookup('vars', stack_type + '_services') }}"
     stack: "{{ lookup('vars', stack_type + '_stack') }}"
-  
+
   roles:
     - role: pre-checks
     - role: dynamic-stack

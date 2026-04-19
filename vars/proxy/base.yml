@@ -5,24 +5,26 @@ proxy_stack:
   config_path: "{{ proxy_stack_base_path }}/configs"
   data_path: "{{ proxy_stack_base_path }}/data"
 
-  user_id: "{{ user_id | default('1000')}}"
-  group_id: "{{ group_id | default('1000')}}"
+  # Preferred user (will fall back to ansible_user if not found)
+  preferred_user: "{{ user | default(ansible_user) }}"
+  user_id: "{{ user_id | default(1000) }}"
+  group_id: "{{ group_id | default(1000) }}"
   timezone: "{{ timezone | default('Africa/Nairobi')}}"
 
   network_name: "traefik_net"
 
   versions:
-    traefik: "3.5.3"
+    traefik: "v3.6.13"  # Latest stable with updated Docker client
 
 # Service configuration
 proxy_services:
   traefik:
-    enabled: true 
+    enabled: true
     https: 443
     http: 82
     version: "{{ proxy_stack.versions.traefik | default('latest') }}"
     dashboard:
-      enabled: true 
+      enabled: true
       url: "traefik.{{ domain }}"
       credentials: "{{ vault_traefik_credentials }}"
     insecure_skip_verify: true
@@ -30,12 +32,12 @@ proxy_services:
       email: "{{ vault_traefik_acme_email }}"
       server: "https://acme-v02.api.letsencrypt.org/directory"
     debug: true
-    cloudflare: 
+    cloudflare:
       token: "{{ vault_cloudflare_token }}"
     cert_resolver: "cloudflare"
-    dns: 
+    dns:
       provider: "cloudflare"
       disable_propagation_check: false
-      resolvers: 
+      resolvers:
         - '1.1.1.1:53'
         - '1.0.0.0:53'

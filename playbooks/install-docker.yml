@@ -4,12 +4,10 @@
   become: yes
   gather_facts: yes
   serial: "{{ install_serial | default(1) }}"  # Install one at a time by default
-   
+
   vars_files:
     - ../vars/versions.yml
-  vars:
-    docker_version: "5:28.5.0-1~ubuntu.25.04~plucky"
-   
+
   pre_tasks:
     - name: Show installation plan
       debug:
@@ -19,7 +17,7 @@
           - "Architecture: {{ ansible_architecture }}"
           - "Users to add to docker group: {{ docker_users | join(', ') }}"
       tags: always
-      
+
     - name: Validate prerequisites
       assert:
         that:
@@ -28,55 +26,55 @@
           - ansible_architecture in ['x86_64', 'amd64']
         fail_msg: "System requirements not met for Docker installation"
       tags: validate
-      
+
     - name: Check available disk space
       shell: df / | tail -1 | awk '{print $4}'
       register: available_space
       changed_when: false
-      
+
     - name: Ensure sufficient disk space
       assert:
         that:
           - available_space.stdout | int > 2097152  # 2GB in KB
         fail_msg: "Insufficient disk space. Need at least 2GB free"
       tags: validate
-           
+
   roles:
     - role: docker
       tags: ['docker']
-      
+
   post_tasks:
     - name: Wait for Docker service to be fully ready
       wait_for:
         timeout: 30
       become: yes
-      
+
     - name: Perform post-installation tests
       block:
         - name: Test Docker daemon
           command: docker info
           register: docker_info
           changed_when: false
-          
+
         - name: Test container execution
           command: docker run --rm alpine:latest echo "Docker is working!"
           register: docker_test
           changed_when: false
-          
+
         - name: Display Docker system info
           debug:
             msg:
               - "Docker installation successful!"
               - "Docker version: {{ docker_version_check.stdout | default('Unknown') }}"
               - "Containers can execute: {{ docker_test.stdout | default('Test failed') }}"
-              
+
       rescue:
         - name: Docker installation failed
           fail:
             msg: "Docker installation completed but tests failed. Check logs above."
-            
+
       tags: ['test', 'verify']
-      
+
     - name: Show management commands
       debug:
         msg:

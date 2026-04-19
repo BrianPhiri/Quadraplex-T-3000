@@ -1,54 +1,52 @@
 ---
 - name: Pull Docker images for stack (optional)
-  docker_image:
-    name: "{{ services[item].image }}"
-    tag: "{{ services[item].version }}"
-    source: pull
-    state: present
+  ansible.builtin.shell:
+    cmd: "docker pull {{ services[item].image }}:{{ services[item].version }}"
   loop: "{{ stack_services }}"
-  when: 
+  when:
     - services[item].enabled | default(true)
     - stack_pull_images | default(false)
   register: image_pull_result
+  changed_when: "'Downloaded newer image' in image_pull_result.stdout or 'Pulling from' in image_pull_result.stdout"
 
 - name: Display image pull results
   debug:
     msg: "Pulled {{ services[item.item].image }}:{{ services[item.item].version }}"
   loop: "{{ image_pull_result.results }}"
-  when: 
+  when:
     - image_pull_result is defined
     - item.changed | default(false)
 
 - name: Stop existing stack (if running)
-  community.docker.docker_compose_v2:
-    project_src: "{{ stack_config.base_path }}"
-    state: absent
+  ansible.builtin.shell:
+    cmd: docker compose down
+    chdir: "{{ stack_config.base_path }}"
   ignore_errors: yes
   tags: ['never', 'force-restart']
+  changed_when: false
 
 - name: Start stack with docker-compose
-  community.docker.docker_compose_v2:
-    project_src: "{{ stack_config.base_path }}"
-    build: never
-    state: present
-    pull: missing
-    remove_orphans: yes
+  ansible.builtin.shell:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ stack_config.base_path }}"
   register: compose_result
+  changed_when: "'Started' in compose_result.stderr or 'Creating' in compose_result.stderr"
 
 - name: Display docker-compose results
   debug:
-    var: compose_result.services
+    msg: "{{ compose_result.stderr_lines | default([]) }}"
   when: compose_result.changed
 
 - name: Ensure all enabled services are running
-  docker_container_info:
-    name: "{{ item }}"
+  ansible.builtin.shell:
+    cmd: docker inspect {{ item }} --format='{% raw %}{{.State.Status}}{% endraw %}'
   register: container_info
   loop: "{{ stack_services }}"
   when: services[item].enabled | default(false)
-  failed_when: 
-    - container_info.exists
-    - container_info.container.State.Status != "running"
+  changed_when: false
+  failed_when:
+    - container_info.rc == 0
+    - container_info.stdout != "running"
 
 - name: Create systemd service for stack
   template:

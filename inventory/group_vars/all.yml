@@ -10,7 +10,6 @@ users_to_create:
 # Docker configuration
 docker_users:
   - "{{ ansible_user }}"
-  - "emmental"
 
 user_id: 1000
 group_id: 1000
@@ -23,6 +22,6 @@ default_domain: "example.com"
 default_subdomain: "traefik"
 domain_final: "{{ my_domain | default(default_domain) }}"
 subdomain_final: "{{ subdomain | default(default_subdomain) }}"
-domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}" 
+domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}"
 
 netbird_setup_key: "{{ vault_netbird_setup_key }}"

@@ -1,4 +1,22 @@
 ---
+- name: Check if preferred user exists
+  ansible.builtin.shell: "getent passwd {{ proxy_stack.preferred_user }}"
+  register: user_check
+  failed_when: false
+  changed_when: false
+
+- name: Set actual runtime user
+  set_fact:
+    proxy_stack_runtime_user: "{{ proxy_stack.preferred_user if user_check.rc == 0 else ansible_user }}"
+    proxy_stack_runtime_group: "docker"
+
+- name: Display user configuration
+  debug:
+    msg:
+      - "Preferred user: {{ proxy_stack.preferred_user }}"
+      - "Runtime user: {{ proxy_stack_runtime_user }}"
+      - "Runtime group: {{ proxy_stack_runtime_group }}"
+
 - name: Include directory creation tasks
   include_tasks: directories.yml
   tags: ['proxy', 'directories']
@@ -21,5 +39,3 @@
       - "Proxy Stack Services:"
       - "  Traefik dashboard:   https://{{ proxy_services.traefik.dashboard.url }}"
   tags: always
-
-

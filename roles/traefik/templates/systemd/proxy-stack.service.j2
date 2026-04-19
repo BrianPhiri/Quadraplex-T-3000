@@ -13,8 +13,8 @@ ExecStop=/usr/bin/docker compose down
 ExecReload=/usr/bin/docker compose restart
 TimeoutStartSec=0
 
-User={{ user }}
-Group=docker
+User={{ proxy_stack_runtime_user }}
+Group={{ proxy_stack_runtime_group }}
 
 [Install]
 WantedBy=multi-user.target

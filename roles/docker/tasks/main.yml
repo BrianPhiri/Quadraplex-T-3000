@@ -1,6 +1,13 @@
-- name: Get docker version configuration
+- name: Determine Docker version for this distribution
   set_fact:
-    docker_version: "{{ docker_version | default('5:28.5.0-1~ubuntu.25.04~plucky')}}"
+    docker_version: "{{ docker_version | default(docker.versions[ansible_distribution_version] | default(docker.default_version)) }}"
+    containerd_version: "{{ containerd_version | default(docker.containerd[ansible_distribution_version] | default(docker.default_containerd)) }}"
+
+- name: Display selected Docker version
+  debug:
+    msg:
+      - "Installing Docker version {{ docker_version }} for {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "Containerd version: {{ containerd_version }}"
 
 - name: Include installation tasks
   include_tasks: install.yml

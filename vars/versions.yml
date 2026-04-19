@@ -1,5 +1,20 @@
 docker:
-  engine_version: "5:24.0.7-1~ubuntu.22.04~jammy"
-  containerd_version: "1.6.24-1"
-  compose_version: "2.21.0"
+  default_version: "5:29.4.0-1~ubuntu.25.10~questing"
+  default_containerd: "2.2.3-1~ubuntu.25.10~questing"
+
+  versions:
+    # Ubuntu 25.10 (questing)
+    "25.10": "5:29.4.0-1~ubuntu.25.10~questing"
+    # Ubuntu 25.04 (plucky)
+    "25.04": "5:28.5.2-1~ubuntu.25.04~plucky"
+
+  # Containerd versions per distribution
+  containerd:
+    # Ubuntu 25.10 (questing)
+    "25.10": "2.2.3-1~ubuntu.25.10~questing"
+    # Ubuntu 25.04 (plucky)
+    "25.04": "2.2.1-1~ubuntu.25.04~plucky"
+
+  # Additional components
+  compose_version: "2.39.2"
   buildx_version: "latest"

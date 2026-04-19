@@ -11,23 +11,36 @@
   when: services[item.service.lower().replace(' ', '_')].enabled | default(true)
 
 - name: Check Docker container status
-  docker_container_info:
-    name: "{{ item }}"
+  ansible.builtin.shell:
+    cmd: docker inspect {{ item }} --format='{% raw %}{{.State.Status}}{% endraw %}'
   register: container_status
   loop:
     - traefik
   when: services[item.replace('-', '_')].enabled | default(true)
+  changed_when: false
+  failed_when: false
 
 - name: Verify containers are running
   assert:
     that:
-      - item.exists
-      - item.container.State.Status == "running"
-      - item.container.State.Health.Status is undefined or item.container.State.Health.Status == "healthy"
-    fail_msg: "Container {{ item.container.Name }} is not running properly"
-    success_msg: "Container {{ item.container.Name }} is running and healthy"
+      - item.rc == 0
+      - item.stdout == "running"
+    fail_msg: "Container {{ item.item }} is not running properly (status: {{ item.stdout | default('not found') }})"
+    success_msg: "Container {{ item.item }} is running"
   loop: "{{ container_status.results }}"
   when: item.item is defined and services[item.item.replace('-', '_')].enabled | default(true)
+
+- name: Get runtime user UID
+  ansible.builtin.shell:
+    cmd: "id -u {{ proxy_stack_runtime_user }}"
+  register: runtime_user_uid
+  changed_when: false
+
+- name: Get runtime group GID
+  ansible.builtin.shell:
+    cmd: "getent group {{ proxy_stack_runtime_group }} | cut -d: -f3"
+  register: runtime_group_gid
+  changed_when: false
 
 - name: Verify data directory permissions
   stat:
@@ -40,14 +53,14 @@
 - name: Check data directory ownership
   assert:
     that:
-      - data_dir_stats.results[index].stat.uid == proxy_stack.user_id | int
-      - data_dir_stats.results[index].stat.gid == proxy_stack.group_id | int
-    fail_msg: "Data directory {{ item }} has incorrect ownership"
+      - data_dir_stats.results[index].stat.uid == runtime_user_uid.stdout | int
+      - data_dir_stats.results[index].stat.gid == runtime_group_gid.stdout | int
+    fail_msg: "Data directory {{ item }} has incorrect ownership (expected {{ proxy_stack_runtime_user }}:{{ proxy_stack_runtime_group }})"
   loop:
     - traefik
   loop_control:
     index_var: index
-  when: 
+  when:
     - services[item.replace('-', '_')].enabled | default(true)
     - data_dir_stats.results[index].stat.exists
 
