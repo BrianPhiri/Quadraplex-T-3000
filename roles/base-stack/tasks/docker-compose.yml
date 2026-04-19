@@ -27,7 +27,7 @@
 
 - name: Start stack with docker-compose
   ansible.builtin.shell:
-    cmd: docker compose up -d --remove-orphans
+    cmd: docker compose up -d --remove-orphans --quiet-pull
     chdir: "{{ stack_config.base_path }}"
   register: compose_result
   changed_when: "'Started' in compose_result.stderr or 'Creating' in compose_result.stderr"

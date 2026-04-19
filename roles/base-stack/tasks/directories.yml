@@ -21,6 +21,18 @@
   loop: "{{ stack_services }}"
   when: services[item].enabled | default(true)
 
+- name: Create logs subdirectories for services that need them
+  file:
+    path: "{{ stack_config.config_path }}/{{ item }}/logs"
+    state: directory
+    owner: "{{ stack_user_id }}"
+    group: "{{ stack_group_id }}"
+    mode: '0755'
+  loop: "{{ stack_services }}"
+  when: 
+    - services[item].enabled | default(true)
+    - item in ['jellyseerr', 'sonarr', 'radarr', 'prowlarr', 'lidarr', 'bazarr']
+
 - name: Create service-specific data directories
   file:
     path: "{{ stack_config.data_path }}/{{ item }}"
@@ -31,13 +43,7 @@
   loop: "{{ stack_services }}"
   when: services[item].enabled | default(true)
 
-- name: Set proper permissions for data directories
-  file:
-    path: "{{ stack_config.data_path }}"
-    owner: "{{ stack_user_id }}"
-    group: "{{ stack_group_id }}"
-    mode: '0755'
-    recurse: yes
+# Permissions already set per-service above - recursive operation removed for performance
 
 - name: Create backup directory
   file:

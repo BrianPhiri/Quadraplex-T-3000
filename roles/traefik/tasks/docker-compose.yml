@@ -20,7 +20,7 @@
 
 - name: Start proxy stack with docker-compose
   ansible.builtin.shell:
-    cmd: docker compose up -d --remove-orphans
+    cmd: docker compose up -d --remove-orphans --quiet-pull
     chdir: "{{ proxy_stack.base_path }}"
   register: compose_result
   changed_when: "'Started' in compose_result.stderr or 'Creating' in compose_result.stderr"
