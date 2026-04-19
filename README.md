@@ -84,5 +84,36 @@ my-stack-ansible/
 ### 2. Customize host
 - Edit inventory/hosts.yml and adjust group_vars/ and host_vars/ for your environment.
 
-### 3. Deploy using make
-`make deploy`
+### 3. Run make commands
+
+## Make commands 
+
+### Docker Installation & Management Commands
+
+`make help` - Show help message with available commands.
+`make install-docker` - Install Docker on target environment (e.g., ENV=production).
+`make install-docker-host` - Install Docker on a specific host (e.g., HOST=media-prod-01).
+`make install-docker-parallel` - Install Docker on multiple hosts in parallel.
+
+### Docker Information & Validation
+
+`make docker-info` - Show Docker system information.
+`make docker-version` - Show Docker and Docker Compose versions.
+`make docker-test` - Run a test container (hello-world) to verify installation.
+`make docker-status` - Check Docker service status.
+`make docker-logs` - View Docker service logs (last 50 lines).
+`make docker-restart` - Restart Docker service.
+`make docker-cleanup` - Remove unused Docker resources (system prune).
+`make docker-disk-usage` - Show Docker disk usage.
+`make docker-validate` - Validate Docker installation (runs playbook with validation tags).
+
+#### Helper Commands
+
+`make docker-daemon-reload` - Reload Docker daemon configuration and restart service.
+`make docker-users-check` - Check which users belong to the Docker group.
+
+### Debug & Rollback
+
+`make docker-debug` - Run Docker installation playbook in debug mode (-vvv).
+`make docker-remove` - Remove Docker installation and all data (destructive).
+
