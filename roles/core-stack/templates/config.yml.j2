@@ -1,4 +1,3 @@
----
 http:
   middlewares:
     default-headers:
@@ -10,9 +9,9 @@ http:
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 15552000
-        customFrameOptionsValue: SAMEORIGIN
+        customFrameOptionsValue: "SAMEORIGIN"
         customRequestHeaders:
-          X-Forwarded-Proto: https
+          X-Forwarded-Proto: "https"
 
     https-redirectscheme:
       redirectScheme:
@@ -20,34 +19,36 @@ http:
         permanent: true
 
   routers:
-  {% for route in traefik_routes | default([]) %}
+{% for route in traefik_routes | default([]) %}
     {{ route.name }}:
       entryPoints:
-      {% for entrypoint in route.entrypoints | default(['https']) %}
+{% for entrypoint in route.entrypoints | default(['https']) %}
         - "{{ entrypoint }}"
-      {% endfor %}
+{% endfor %}
       rule: "Host(`{{ route.host }}.{{ route.domain | default('${DOMAIN}') }}`)"
       middlewares:
-      {% for middleware in route.middlewares | default(['default-headers', 'https-redirectscheme']) %}
-        - {{ middleware }}
-      {% endfor %}
-      tls: {}
-      service: {{ route.service | default(route.name) }}
-    {% if not loop.last %}
-    {% endif %}
-  {% endfor %}
+{% for middleware in route.middlewares | default(['default-headers', 'https-redirectscheme']) %}
+        - "{{ middleware }}"
+{% endfor %}
+      tls:
+        certResolver: "{{ traefik_cert_resolver | default('cloudflare') }}"
+      service: "{{ route.service | default(route.name) }}"
+{% endfor %}
 
   services:
-  {% for service in traefik_services | default([]) %}
+{% for service in traefik_services | default([]) %}
     {{ service.name }}:
       loadBalancer:
         servers:
-        {% for server in service.servers %}
+{% for server in service.servers %}
           - url: "{{ server.url }}"
-        {% endfor %}
-        {% if service.pass_host_header is defined %}
-        passHostHeader: {{ service.pass_host_header }}
-        {% endif %}
-    {% if not loop.last %}
-    {% endif %}
-  {% endfor %}
+{% endfor %}
+        passHostHeader: {{ service.pass_host_header | default(false) | lower }}
+{% if service.health_check is defined %}
+        healthCheck:
+          path: "{{ service.health_check.path }}"
+          interval: "{{ service.health_check.interval | default('30s') }}"
+          timeout: "{{ service.health_check.timeout | default('5s') }}"
+{% endif %}
+{% endfor %}
+

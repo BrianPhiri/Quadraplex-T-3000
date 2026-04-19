@@ -31,17 +31,18 @@ core_stack:
 
 # Service configuration
 core_services:
+  traefik:
+    enabled: true 
+    https: 443
+    http: 82
+    version: "{{ core_stack.versions.traefik | default('latest') }}"
   adguard_home:
     enabled: true
     port: 80
     version: "{{ core_stack.versions.adguard_home | default('latest') }}"
-  traefik:
-    enabled: false
-    https: 443
-    http: 81
-    version: "{{ core_stack.versions.traefik | default('latest') }}"
+    domain: 
   portainer:
-    enabled: false
+    enabled: true
     port: 9443
     version: "{{ core_stack.versions.portainer | default('lts') }}"
   grafana:
@@ -49,25 +50,22 @@ core_services:
     port: 3000
     version: "{{ core_stack.versions.grafana | default('main') }}"
   uptime_kuma:
-    enabled: false
+    enabled: true
     port: 3001
     version: "{{ core_stack.versions.uptime_kuma | default('1') }}"
   filebrowser:
-    enabled: false
+    enabled: true
     port: 8081
+    folder_path: "/media"
     version: "{{ core_stack.versions.filebrowser | default('latest') }}"
   crowdsec:
     enabled: false
-    port: 8083
+    port: 0
     version: "{{ core_stack.versions.crowdsec | default('latest') }}"
   wireshark:
-    enabled: false
-    port: 3001
+    enabled: true
+    port: 3003
     version: "{{ core_stack.versions.wireshark | default('latest') }}"
-  adguard_home:
-    enabled: false
-    port: 80
-    version: "{{ core_stack.versions.adguard_home | default('latest') }}"
   
 # Cloudflare credentials
 cloudflare_api_token: "{{ cloudflare_token }}"
@@ -79,20 +77,3 @@ traefik_dashboard_host: "{{ dashboard.host }}"
 # Traefik configuration
 traefik_acme_email: "{{ acme_email }}"
 traefik_debug: false
-
-# Auto-generate routes from this list
-traefik_routes:
-  - name: proxmox
-    host: proxmox
-    service: proxmox
-    
-  - name: portainer
-    host: portainer
-    service: portainer
-
-# Define backend services
-traefik_services:
-  - name: proxmox
-    servers:
-      - url: "https://192.168.0.3:8006"
-    pass_host_header: false

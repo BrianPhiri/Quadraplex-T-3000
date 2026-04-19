@@ -1,0 +1,84 @@
+my_domain: # Auto-generate routes from this list
+traefik_routes:
+  - name: proxmox
+    host: proxmox
+    domain: "brianphiri.digital"
+    service: proxmox
+    entrypoints: [https]
+  - name: protainer
+    host: portainer
+    domain: "brianphiri.digital"
+    service: portainer
+    entrypoints: [https]
+  - name: uptime_kuma
+    host: uptime
+    domain: "brianphiri.digital"
+    service: uptime_kuma
+    entrypoints: [https]
+  - name: filebrowser
+    host: filebrowser
+    domain: "brianphiri.digital"
+    service: filebrowser
+    entrypoints: [https]
+  - name: crowdsec
+    host: crowdsec
+    domain: "brianphiri.digital"
+    service: crowdsec
+    entrypoints: [https]
+  - name: wireshark
+    host: wireshark
+    domain: "brianphiri.digital"
+    service: wireshark
+    entrypoints: [https]
+
+traefik_services:
+  - name: proxmox
+    servers:
+      - url: "https://192.168.100.20:8006"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+  - name: portainer
+    servers:
+      - url: "https://192.168.100.196:9443"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+  - name: uptime_kuma
+    servers:
+      - url: "http://192.168.100.196:3001"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+  - name: filebrowser
+    servers:
+      - url: "http://192.168.100.196:8081"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+  - name: crowdsec
+    servers:
+      - url: "http://192.168.100.196:8083"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+  - name: wireshark
+    servers:
+      - url: "http://192.168.100.196:3003"
+    pass_host_header: false
+    health_check:
+      path: "/"
+      interval: "30s"
+      timeout: "5s"
+
+

@@ -28,7 +28,7 @@ certificatesResolvers:
   {{ traefik_cert_resolver | default('cloudflare') }}:
     acme:
       email: {{ traefik_acme_email }}
-      storage: acme.json
+      storage: /acme.json
       caServer: {{ traefik_acme_server | default('https://acme-v02.api.letsencrypt.org/directory') }}
       dnsChallenge:
         provider: {{ traefik_dns_provider | default('cloudflare') }}
