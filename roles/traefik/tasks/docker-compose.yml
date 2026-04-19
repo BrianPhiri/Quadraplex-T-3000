@@ -4,21 +4,26 @@
     name: "{{ proxy_stack.network_name }}"
     state: present
 
+- name: Check if docker-compose.yml exists
+  ansible.builtin.stat:
+    path: "{{ proxy_stack.base_path }}/docker-compose.yml"
+  register: compose_file
+
 - name: Stop existing proxy stack (if running)
-  community.docker.docker_compose_v2:
-    project_src: "{{ proxy_stack.base_path }}"
-    state: absent
+  ansible.builtin.shell:
+    cmd: docker compose down
+    chdir: "{{ proxy_stack.base_path }}"
+  when: compose_file.stat.exists
   ignore_errors: yes
   tags: ['never', 'force-restart']
 
+
 - name: Start proxy stack with docker-compose
-  community.docker.docker_compose_v2:
-    project_src: "{{ proxy_stack.base_path }}"
-    build: never
-    state: present
-    pull: missing
-    remove_orphans: yes
+  ansible.builtin.shell:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ proxy_stack.base_path }}"
   register: compose_result
+  changed_when: "'Started' in compose_result.stderr or 'Creating' in compose_result.stderr"
 
 - name: Display docker-compose results
   debug:

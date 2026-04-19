@@ -1,10 +1,8 @@
 ---
 - name: restart proxy stack
-  community.docker.docker_compose_v2:
-    project_src: "{{ proxy_stack.base_path }}"
-    state: present
-    pull: missing
-    remove_orphans: yes
+  ansible.builtin.shell:
+    cmd: docker compose restart
+    chdir: "{{ proxy_stack.base_path }}"
   listen: "restart proxy stack"
 
 - name: reload systemd
@@ -19,7 +17,7 @@
   listen: "enable proxy stack service"
 
 - name: stop proxy stack
-  community.docker.docker_compose_v2:
-    project_src: "{{ proxy_stack.base_path }}"
-    state: absent
+  ansible.builtin.shell:
+    cmd: docker compose down
+    chdir: "{{ proxy_stack.base_path }}"
   listen: "stop proxy stack"

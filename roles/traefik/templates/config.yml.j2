@@ -25,13 +25,13 @@ http:
 {% for entrypoint in route.entrypoints | default(['https']) %}
         - "{{ entrypoint }}"
 {% endfor %}
-      rule: "Host(`{{ route.host }}.{{ route.domain | default('${DOMAIN}') }}`)"
+      rule: "Host(`{{ route.host }}.{{ domain | default('${DOMAIN}') }}`)"
       middlewares:
 {% for middleware in route.middlewares | default(['default-headers', 'https-redirectscheme']) %}
         - "{{ middleware }}"
 {% endfor %}
       tls:
-        certResolver: "{{ traefik_cert_resolver | default('cloudflare') }}"
+        certResolver: "{{ proxy_services.traefik.cert_resolver | default('cloudflare') }}"
       service: "{{ route.service | default(route.name) }}"
 {% endfor %}
 

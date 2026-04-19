@@ -19,7 +19,7 @@
   debug:
     msg:
       - "Proxy Stack Services:"
-      - "  Traefik:   https://{{ traefik_dashboard_host }}"
+      - "  Traefik dashboard:   https://{{ proxy_services.traefik.dashboard.url }}"
   tags: always
 
 

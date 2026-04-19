@@ -1,7 +1,0 @@
-domain: ""
-dashboard:
-  host: ""
-  credentials: ""
-
-cloudflare_token: ""
-acme_email: ""

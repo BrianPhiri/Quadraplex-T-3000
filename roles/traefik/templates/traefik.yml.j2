@@ -1,7 +1,7 @@
 ---
 api:
-  dashboard: {{ traefik_dashboard_enabled | default('true') }}
-  debug: {{ traefik_debug | default('true') }}
+  dashboard: {{ proxy_services.traefik.dashboard.enabled | default('true') }}
+  debug: {{ proxy_services.traefik.debug | default('true') }}
 
 entryPoints:
   http:
@@ -15,7 +15,7 @@ entryPoints:
     address: ":443"
 
 serversTransport:
-  insecureSkipVerify: {{ traefik_insecure_skip_verify | default('true') }}
+  insecureSkipVerify: {{ proxy_services.traefik.insecure_skip_verify | default('true') }}
 
 providers:
   docker:
@@ -25,20 +25,20 @@ providers:
     filename: /config.yml
 
 certificatesResolvers:
-  {{ traefik_cert_resolver | default('cloudflare') }}:
+  {{ proxy_services.traefik.cert_resolver | default('cloudflare') }}:
     acme:
-      email: {{ traefik_acme_email }}
+      email: {{ proxy_services.traefik.acme.email }}
       storage: /acme.json
-      caServer: {{ traefik_acme_server | default('https://acme-v02.api.letsencrypt.org/directory') }}
+      caServer: {{ proxy_services.traefik.acme.server | default('https://acme-v02.api.letsencrypt.org/directory') }}
       dnsChallenge:
-        provider: {{ traefik_dns_provider | default('cloudflare') }}
-{% if traefik_dns_disable_propagation_check | default(false) %}
+        provider: {{ proxy_services.traefik.dns.provider | default('cloudflare') }}
+{% if proxy_services.traefik.dns.disable_propagation_check | default(false) %}
         disablePropagationCheck: true
 {% endif %}
-{% if traefik_dns_delay_before_check is defined %}
-        delayBeforeCheck: {{ traefik_dns_delay_before_check }}
+{% if proxy_services.traefik.dns.delay_before_check is defined %}
+        delayBeforeCheck: {{ proxy_services.traefik.dns.delay_before_check }}
 {% endif %}
         resolvers:
-{% for resolver in traefik_dns_resolvers | default(['1.1.1.1:53', '1.0.0.1:53']) %}
+{% for resolver in proxy_services.traefik.dns.resolvers | default(['1.1.1.1:53', '1.0.0.1:53']) %}
           - "{{ resolver }}"
 {% endfor %}

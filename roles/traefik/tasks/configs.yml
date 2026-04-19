@@ -33,8 +33,8 @@
   template:
     src: config.yml.j2
     dest: "{{ proxy_stack.config_path }}/traefik/config.yml"
-    owner: "{{ user_id }}"
-    group: "{{ group_id }}"
+    owner: "{{ proxy_stack.user_id }}"
+    group: "{{ proxy_stack.group_id }}"
     mode: '0644'
     backup: yes
   notify: restart proxy stack

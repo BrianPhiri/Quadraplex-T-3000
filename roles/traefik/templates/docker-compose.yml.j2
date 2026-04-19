@@ -1,7 +1,7 @@
 ---
 networks:
   {{ proxy_stack.network_name }}:
-    driver: bridge
+    external: true
 
 services:
 {% if services.traefik.enabled %}
