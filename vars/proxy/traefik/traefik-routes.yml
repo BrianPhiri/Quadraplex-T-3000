@@ -1,0 +1,18 @@
+#Proxmox_ip: "192.168.100.20"
+#
+#Traefik_routes:
+#  - name: proxmox
+#    host: proxmox
+#    service: proxmox
+#    host: suggestarr
+#
+#Traefik_services:
+#  - name: proxmox
+#    servers:
+#      - url: "https://{{ proxmox_ip }}:8006"
+#    pass_host_header: false
+#    health_check:
+#      path: "/"
+#      interval: "30s"
+#      timeout: "5s"
+#

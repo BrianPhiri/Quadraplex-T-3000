@@ -1,0 +1,275 @@
+---
+# Media stack configuration
+media_stack_base_path: "/opt/media-stack"
+mount_path: "/mnt/media"
+media_stack:
+  # Paths
+  base_path: "{{ media_stack_base_path }}"
+  config_path: "{{ media_stack_base_path }}/configs"
+  data_path: "{{ media_stack_base_path }}/data"
+  downloads_path: "{{ mount_path }}/downloads"
+  media_path: "{{ mount_path }}"
+ 
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+
+  network_configs:
+    media_net:
+      name: media_net 
+      driver: bridge
+    traefik_net:
+      name: traefik_net
+      external: true
+ 
+  # Domain configuration
+  domain: "{{ media_domain | default('localhost') }}"
+  enable_ssl: true
+ 
+  # Container versions (can be overridden per environment)
+  versions:
+    jellyfin: "latest" 
+    jellyseerr: "2.7.3" 
+    sonarr: "latest" 
+    radarr: "latest"
+    lidarr: "latest"
+    prowlarr: "latest" 
+    bazarr: "latest"
+    qbittorrent: "latest"
+    releasarr: "latest" 
+    suggestarr: "latest"
+    kavita: "latest" 
+    boxarr: "latest" 
+    huntarr: "latest"
+    filebrowser: "v2-s6"
+    mylar: "latest" 
+    netbird: "latest"
+    node_exporter: "latest"
+    cadvisor: "latest"
+    jellyfin_vue: "unstable"
+    immich: "v2.3.1"
+    freshrss: "latest"
+
+# Service configuration
+media_services:
+  cadvisor:
+    enabled: true
+    port: 8081
+    version: "{{ media_stack.versions.cadvisor | default('latest') }}"
+  node_exporter:
+    enabled: true
+    port: 9100
+    version: "{{ media_stack.versions.node_exporter | default('latest') }}"
+  netbird:
+    enabled: true 
+    version: "{{ media_stack.versions.netbird | default('latest') }}"
+    hostname: media
+    setup_key: "{{ netbird_setup_key }}"
+  filebrowser:
+    enabled: true
+    port: 89
+    browse_path: "{{ mount_path }}"
+    version: "{{ media_stack.versions.filebrowser | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "browse"
+      domain: "{{ domain }}"
+  prowlarr:
+    enabled: true
+    port: 9696
+    version: "{{ media_stack.versions.prowlarr | default('latest') }}"
+    networks:
+      - traefik_net
+    dnss:
+      - "{{ custom_dns }}"
+    traefik:
+      enabled: true 
+      host: "prowlarr"
+      domain: "{{ domain }}"
+  sonarr:
+    enabled: true
+    port: 8989
+    version: "{{ media_stack.versions.sonarr | default('latest') }}"
+    networks:
+      - traefik_net
+    dnss:
+      - "{{ custom_dns }}"
+    traefik:
+      enabled: true 
+      host: "sonarr"
+      domain: "{{ domain }}"
+  radarr: 
+    enabled: true
+    port: 7878
+    version: "{{ media_stack.versions.radarr | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "radarr"
+      domain: "{{ domain }}"
+  jellyseerr: 
+    enabled: true
+    port: 5055
+    version: "{{ media_stack.versions.jellyseerr | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "jellyseerr"
+      domain: "{{ domain }}"
+  jellyfin: 
+    enabled: true
+    port: 8096
+    version: "{{ media_stack.versions.jellyfin | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "watch"
+      domain: "{{ domain }}"
+  jellyfin_vue: 
+    enabled: true
+    port: 88
+    version: "{{ media_stack.versions.jellyfin_vue | default('unstable') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "tv"
+      domain: "{{ domain }}"
+  bazarr:
+    enabled: true
+    port: 6767
+    version: "{{ media_stack.versions.bazarr | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "bazarr"
+      domain: "{{ domain }}"
+  lidarr:
+    enabled: true
+    port: 8686
+    version: "{{ media_stack.versions.lidarr | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "lidarr"
+      domain: "{{ domain }}"
+  releasarr:
+    enabled: false
+    port: 1337
+    version: "{{ media_stack.versions.releasarr | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "releasarr"
+      domain: "{{ domain }}"
+  huntarr:
+    enabled: false
+    port: 9705
+    version: "{{ media_stack.versions.huntarr | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "huntarr"
+      domain: "{{ domain }}"
+  suggestarr:
+    enabled: true
+    port: 5000
+    version: "{{ media_stack.versions.suggestarr | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "suggestarr"
+      domain: "{{ domain }}"
+  qbittorrent:
+    enabled: true
+    port: 8080
+    peer_port: 6881
+    version: "{{ media_stack.versions.qbittorrent | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "torrent"
+      domain: "{{ domain }}"
+  kavita:
+    enabled: true
+    port: 5001
+    internal_port: 5003
+    version: "{{ media_stack.versions.kavita | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "kavita"
+      domain: "{{ domain }}"
+  boxarr:
+    enabled: true
+    port: 8888
+    version: "{{ media_stack.versions.boxarr | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "boxarr"
+      domain: "{{ domain }}"
+  mylar:
+    enabled: true
+    port: 8090
+    version: "{{ media_stack.versions.mylar | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "mylar"
+      domain: "{{ domain }}"
+  immich:
+    enabled: true
+    port: 2283
+    version: "{{ media_stack.versions.immich | default('latest') }}"
+    db:
+      name: "immich"
+      user: "benjamin"
+      password: "{{ vault_immich_db_password }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "photos"
+      domain: "{{ domain }}"
+  freshrss:
+    enabled: true
+    port: 8089
+    version: "{{ media_stack.versions.freshrss | default('latest') }}"
+    dnss:
+      - "{{ custom_dns }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true 
+      host: "feed"
+      domain: "{{ domain }}"
+

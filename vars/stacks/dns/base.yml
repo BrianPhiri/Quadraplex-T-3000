@@ -1,0 +1,45 @@
+---
+dns_stack_base_path: "/opt/dns-stack"
+dns_stack:
+  # Paths
+  base_path: "{{ dns_stack_base_path }}"
+  config_path: "{{ dns_stack_base_path }}/configs"
+  data_path: "{{ dns_stack_base_path }}/data"
+
+  user_id: "{{ user_id | default('1000')}}"
+  group_id: "{{ group_id | default('1000')}}"
+  timezone: "{{ timezone | default('Africa/Nairobi')}}"
+  
+  # Network
+  network_configs:
+    dns_net:
+      name: dns_net 
+      driver: bridge
+ 
+  versions:
+    adguard_home: "latest"
+    cadvisor: "latest"
+    node_exporter: "latest"
+    netbird: "latest"
+
+# Service configuration
+dns_services:
+  cadvisor:
+    enabled: true
+    port: 8081
+    version: "{{ core_stack.versions.cadvisor | default('latest') }}"
+  node_exporter:
+    enabled: true
+    port: 9100
+    version: "{{ core_stack.versions.node_exporter | default('latest') }}"
+  adguard_home:
+    enabled: true
+    http: 81
+    https: 8443
+    version: "{{ core_stack.versions.adguard_home | default('latest') }}"
+  netbird:
+    enabled: true 
+    version: "{{ core_stack.versions.netbird | default('latest') }}"
+    hostname: dns
+    setup_key: "{{ netbird_setup_key }}"
+
