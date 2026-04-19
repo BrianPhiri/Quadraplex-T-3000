@@ -11,6 +11,7 @@ All services are grouped into stacks, making it easy to enable or disable specif
 ---
 
 ## Folder Structure
+```
 my-stack-ansible/
 ├── ansible.cfg # Ansible configuration
 ├── Makefile # Task shortcuts
@@ -40,7 +41,7 @@ my-stack-ansible/
 ├── files/ # SSL certs, scripts, dashboards
 ├── templates/ # Systemd and Docker templates
 └── vars/ # Shared variables (versions, networks)
-
+```
 ## Tools Used
 - **[Ansible](https://www.ansible.com/):** Provisioning, configuration, deployment.  
 - **[Make](https://www.gnu.org/software/make/):** Task runner for common operations.  
