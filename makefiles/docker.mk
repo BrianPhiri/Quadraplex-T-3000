@@ -3,7 +3,7 @@ install-docker: ## Install Docker on target hosts
 	ansible-playbook $(ANSIBLE_OPTS) \
 		-l $(ENV) \
 		-e target_hosts=$(ENV) \
-		playbooks/install-docker-only.yml
+		playbooks/install-docker.yml
 
 install-docker-host: ## Install Docker on specific host
 	@echo "Installing Docker on host: $(HOST)"
