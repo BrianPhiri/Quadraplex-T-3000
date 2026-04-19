@@ -1,0 +1,75 @@
+---
+- name: Install ClamAV packages (Debian/Ubuntu)
+  apt:
+    name:
+      - clamav
+      - clamav-daemon
+      - clamav-freshclam
+      - curl
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install ClamAV packages (RedHat/CentOS)
+  yum:
+    name:
+      - clamav
+      - clamav-update
+      - clamd
+      - curl
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Stop freshclam service temporarily
+  systemd:
+    name: clamav-freshclam
+    state: stopped
+  ignore_errors: yes
+
+- name: Update ClamAV virus definitions
+  command: freshclam
+  register: freshclam_result
+  ignore_errors: yes
+
+- name: Start and enable freshclam service
+  systemd:
+    name: clamav-freshclam
+    state: started
+    enabled: yes
+
+- name: Ensure ClamAV log directory exists
+  file:
+    path: "{{ clamav_log_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy ClamAV scan script
+  template:
+    src: clamav-scan.sh.j2
+    dest: /usr/local/bin/clamav-scan.sh
+    mode: '0755'
+
+- name: Create cron job for automated scans
+  cron:
+    name: "ClamAV automated scan"
+    minute: "{{ scan_cron_minute }}"
+    hour: "{{ scan_cron_hour }}"
+    job: "/usr/local/bin/clamav-scan.sh"
+    user: root
+    state: present
+
+- name: Configure logrotate for ClamAV scans
+  copy:
+    src: clamav-logrotate
+    dest: /etc/logrotate.d/clamav-scan
+    mode: '0644'
+
+- name: Display completion message
+  debug:
+    msg: 
+      - "ClamAV has been configured successfully!"
+      - "Scans will run every {{ scan_cron_hour }}:{{ scan_cron_minute }}"
+      - "Scanning directory: {{ scan_directory }}"
+      - "Gotify notifications: {{ 'Enabled' if gotify_url and gotify_token else 'Disabled (no URL/token provided)' }}"
+      - "Log file: {{ clamav_log_file }}"
+      - "Manual test: /usr/local/bin/clamav-scan.sh"

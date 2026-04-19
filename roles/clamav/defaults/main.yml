@@ -1,0 +1,21 @@
+gotify_url: ""
+gotify_token: ""
+
+# Scan configuration
+scan_directory: "/"
+
+# Exclude pseudo-filesystems and temporary directories
+exclude_dirs:
+  - "/proc"
+  - "/sys"
+  - "/dev"
+  - "/run"
+  - "/tmp"
+
+# Cron schedule (default: every 12 hours at midnight and noon)
+scan_cron_minute: "0"
+scan_cron_hour: "*/12"
+
+# Log file location
+clamav_log_file: "/var/log/clamav/scan.log"
+clamav_log_dir: "/var/log/clamav"

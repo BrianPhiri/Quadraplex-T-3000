@@ -1,0 +1,77 @@
+SCAN_DIR="{{ scan_directory }}"
+LOG_FILE="{{ clamav_log_file }}"
+GOTIFY_URL="{{ gotify_url }}"
+GOTIFY_TOKEN="{{ gotify_token }}"
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+HOSTNAME=$(hostname)
+FQDN=$(hostname -f 2>/dev/null || hostname)
+IP=$(hostname -I | awk '{print $1}')
+
+# Exclude directories
+EXCLUDE_OPTS=""
+{% for dir in exclude_dirs %}
+EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude-dir={{ dir }}"
+{% endfor %}
+
+# Create log directory if it doesn't exist
+mkdir -p "{{ clamav_log_dir }}"
+
+# Function to send Gotify notification (only if configured)
+send_gotify() {
+  if [ -z "$GOTIFY_URL" ] || [ -z "$GOTIFY_TOKEN" ]; then
+    echo "Gotify not configured, skipping notification" >> "$LOG_FILE"
+    return 0
+  fi
+  
+  local title="$1"
+  local message="$2"
+  local priority="$3"
+  
+  curl -X POST "${GOTIFY_URL}/message" \
+    -H "Content-Type: application/json" \
+    -d "{\"title\":\"${title}\",\"message\":\"${message}\",\"priority\":${priority}}" \
+    -H "X-Gotify-Key: ${GOTIFY_TOKEN}" \
+    --silent --show-error
+}
+
+# Send scan start notification
+send_gotify "🔍 ClamAV Scan Starting" "Full system scan initiated on:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏰ Started: ${DATE}" 3
+
+# Run scan with exclusions
+echo "=== ClamAV Scan Started: $DATE ===" >> "$LOG_FILE"
+echo "Scanning: $SCAN_DIR" >> "$LOG_FILE"
+echo "Exclusions: {{ exclude_dirs | join(', ') }}" >> "$LOG_FILE"
+
+START_TIME=$(date +%s)
+clamscan -r -i "$SCAN_DIR" $EXCLUDE_OPTS --log="$LOG_FILE" 2>&1
+SCAN_RESULT=$?
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+DURATION_MIN=$((DURATION / 60))
+
+# Get scan statistics
+SCANNED=$(grep "Scanned files:" "$LOG_FILE" | tail -1 | awk '{print $3}')
+
+# Check scan results and send appropriate notification
+if [ $SCAN_RESULT -eq 0 ]; then
+  TITLE="✅ ClamAV Scan Complete"
+  MESSAGE="Full system scan completed:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏱ Duration: ${DURATION_MIN} minutes\n📁 Files scanned: ${SCANNED}\n✓ No threats detected\n\n⏰ Completed: ${DATE}"
+  PRIORITY=5
+elif [ $SCAN_RESULT -eq 1 ]; then
+  TITLE="🚨 ClamAV ALERT - Threats Detected!"
+  INFECTED_COUNT=$(grep -c "FOUND" "$LOG_FILE")
+  INFECTED_FILES=$(grep "FOUND" "$LOG_FILE" | tail -10 | sed 's/^/• /')
+  MESSAGE="⚠️ MALWARE DETECTED!\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n🦠 Infected files: ${INFECTED_COUNT}\n⏱ Scan duration: ${DURATION_MIN} minutes\n📁 Files scanned: ${SCANNED}\n\n📋 Recent detections:\n${INFECTED_FILES}\n\n🔍 Full log: ${LOG_FILE}\n⏰ Completed: ${DATE}"
+  PRIORITY=10
+else
+  TITLE="❌ ClamAV Scan Error"
+  MESSAGE="Scan encountered an error:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏱ Duration: ${DURATION_MIN} minutes\n🔍 Check log: ${LOG_FILE}\n\n⏰ Completed: ${DATE}"
+  PRIORITY=8
+fi
+
+# Send Gotify notification
+send_gotify "$TITLE" "$MESSAGE" "$PRIORITY"
+
+echo "=== ClamAV Scan Finished: $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
+echo "Duration: ${DURATION_MIN} minutes" >> "$LOG_FILE"
+echo "" >> "$LOG_FILE"

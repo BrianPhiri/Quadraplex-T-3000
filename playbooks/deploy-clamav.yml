@@ -1,0 +1,7 @@
+---
+- name: Deploy ClamAV with automated scanning
+  hosts: all
+  become: yes
+  
+  roles:
+    - clamav

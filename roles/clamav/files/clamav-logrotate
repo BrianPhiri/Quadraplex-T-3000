@@ -1,0 +1,9 @@
+/var/log/clamav/scan.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+}
+
