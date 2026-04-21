@@ -1,6 +1,7 @@
 include makefiles/docker.mk
 include makefiles/user.mk
 include makefiles/deploy.mk
+#include makefiles/base-stack.mk
 include makefiles/clamav.mk
 
 # Makefile - Docker Installation Commands
@@ -26,11 +27,10 @@ help: ## Show this help message
 test-connection: ## Test connection to host
 	@echo "Testing ansible connection to host: $(HOST)"
 	ansible $(ENV) $(ANSIBLE_OPTS) -m ping
-	
+
 # Full Stack Deployment
 initial-deploy:
 	@echo "Deploying complete stack to $(ENV)..."
 	$(MAKE) create-users ENV=$(ENV)
 	$(MAKE) install-docker ENV=$(ENV)
 	$(MAKE) deploy-proxy ENV=$(ENV)
-	
