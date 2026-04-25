@@ -5,7 +5,7 @@ utility_stack:
   base_path: "{{ utility_systems_stack_base_path }}"
   config_path: "{{ utility_systems_stack_base_path }}/configs"
   data_path: "{{ utility_systems_stack_base_path }}/data"
-  media_path: "/mnt/media"
+  media_path: "/mnt/utility"
 
   # User configuration - flexible fallback to ansible_user if user not specified
   preferred_user: "{{ user | default(ansible_user) }}"
@@ -28,6 +28,7 @@ utility_stack:
   versions:
     portainer: "2.33.0"
     grafana: "main"
+    prometheus: "latest"
     uptime_kuma: "1"
     filebrowser: "v2-s6"
     filestash: "latest"
@@ -41,6 +42,8 @@ utility_stack:
     node_exporter: "latest"
     netbird: "latest"
     homeassistant: "stable"
+    pairdrop: "latest"
+    portracker: "latest"
     n8n:
       app: "1.120.3"
       postgres: "17-alpine"
@@ -51,19 +54,70 @@ utility_services:
   cadvisor:
     enabled: true
     port: 8081
-    version: "{{ utiltiy_stack.versions.cadvisor | default('latest') }}"
+    version: "{{ utility_stack.versions.cadvisor | default('latest') }}"
+    networks:
+      - traefik_net
   node_exporter:
     enabled: true
     port: 9100
     version: "{{ utility_stack.versions.node_exporter | default('latest') }}"
+    networks:
+      - traefik_net
+  grafana:
+    enabled: true
+    version: "{{ utility_stack.versions.grafana | default('main') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "grafana"
+      domain: "{{ utility_stack.stack_domain }}"
+  prometheus:
+    enabled: true
+    port: 9090
+    version: "{{ utility_stack.versions.prometheus | default('latest') }}"
+    networks:
+      - traefik_net
   netbird:
     enabled: true
     version: "{{ utility_stack.versions.netbird | default('latest') }}"
-    hostname: hive
+    hostname: media
     setup_key: "{{ netbird_setup_key | default('') }}"
+  pairdrop:
+    enabled: true
+    version: "{{ utility_stack.versions.pairdrop | default('latest') }}"
+    ws_fallback: "false"
+    rate_limit: "false"
+    rtc_config: "false"
+    debug_mode: "false"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "share"
+      domain: "{{ utility_stack.stack_domain }}"
+  gotify:
+    enabled: true
+    version: "{{ utility_stack.versions.gotify | default('latest') }}"
+    dnss:
+      - "{{ custom_dns | default('1.1.1.1') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "notify"
+      domain: "{{ domain }}"
+  homeassistant:
+    enabled: false
+    version: "{{ utility_stack.versions.homeassistant | default('stable') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "home"
+      domain: "{{ domain }}"
   portainer:
     enabled: false
-    port: 9443
     version: "{{ utility_stack.versions.portainer | default('lts') }}"
     networks:
       - traefik_net
@@ -73,7 +127,6 @@ utility_services:
       domain: "{{ utility_stack.stack_domain }}"
   uptime_kuma:
     enabled: true
-    port: 3001
     version: "{{ utility_stack.versions.uptime_kuma | default('1') }}"
     dnss:
       - "{{ custom_dns | default('1.1.1.1') }}"
@@ -84,8 +137,7 @@ utility_services:
       host: "uptime"
       domain: "{{ utility_stack.stack_domain }}"
   vaultwarden:
-    enabled: true
-    port: 5554
+    enabled: false
     version: "{{ utility_stack.versions.vaultwarden | default('latest') }}"
     networks:
       - traefik_net
@@ -94,7 +146,7 @@ utility_services:
       host: "vault"
       domain: "{{ utility_stack.stack_domain }}"
   filestash:
-    enabled: true
+    enabled: false
     port: 8334
     version: "{{ utility_stack.versions.filestash | default('latest') }}"
     networks:
@@ -103,28 +155,6 @@ utility_services:
       enabled: false
       host: "filestash"
       domain: "{{ utility_stack.stack_domain }}"
-  gotify:
-    enabled: true
-    port: 411
-    version: "{{ utility_stack.versions.gotify | default('latest') }}"
-    dnss:
-      - "{{ custom_dns | default('1.1.1.1') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "gotify"
-      domain: "{{ domain }}"
-  homeassistant:
-    enabled: false
-    port: 8123
-    version: "{{ utility_stack.versions.homeassistant | default('stable') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "home"
-      domain: "{{ domain }}"
   glance:
     enabled: false
     port: 8082
@@ -136,8 +166,7 @@ utility_services:
       host: "view"
       domain: "{{ utility_stack.stack_domain }}"
   n8n:
-    enabled: true
-    port: 5678
+    enabled: false
     encryption_key: "{{ vault_n8n_encryption_key | default('changeme') }}"
     version: "{{ utility_stack.versions.n8n.app | default('latest') }}"
     db_version: "{{ utility_stack.versions.n8n.postgres | default('latest') }}"
@@ -154,11 +183,10 @@ utility_services:
       host: "n8n"
       domain: "{{ domain }}"
   grist:
-    enabled: true
-    port: 8484
+    enabled: false
     version: "{{ utility_stack.versions.gotify | default('latest') }}"
     secret: "{{ vault_grist_secret | default('changeme') }}"
-    email: "ops@brianphiri.com"
+    email: ""
     dnss:
       - "{{ custom_dns | default('1.1.1.1') }}"
     networks:
@@ -167,3 +195,12 @@ utility_services:
       enabled: true
       host: "sheets"
       domain: "{{ domain }}"
+  portracker:
+    enabled: true
+    version: "{{ utility_stack.versions.portracker | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "ports"
+      domain: "{{ utility_stack.stack_domain }}"

@@ -5,10 +5,12 @@ portainer:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
+{% if services.portainer.port is defined %}
   ports:
     - "8000:8000"
     - "9000:9000"
     - "{{  services.portainer.port  }}:9443"
+{% endif %}
   security_opt:
     - no-new-privileges:true
   volumes:
@@ -42,5 +44,3 @@ portainer:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

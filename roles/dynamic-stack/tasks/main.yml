@@ -8,7 +8,6 @@
   set_fact:
     enabled_services: "{{ stack_services | dict2items | selectattr('value.enabled', 'equalto', true) | map(attribute='key') | list }}"
 
-
 - name: Generate docker-compose file
   include_tasks: compose.yml
   vars:

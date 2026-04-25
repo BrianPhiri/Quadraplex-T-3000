@@ -10,8 +10,10 @@ filebrowser:
     - {{ services.filebrowser.browse_path }}:/srv
     - {{ stack_config.data_path }}/filebrowser/database:/database
     - {{ stack_config.config_path }}/filebrowser:/config
+{% if services.filebrowser.port is defined %}
   ports:
     - "{{ services.filebrowser.port }}:80"
+{% endif %}
 {% if services.filebrowser.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -37,4 +39,3 @@ filebrowser:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-

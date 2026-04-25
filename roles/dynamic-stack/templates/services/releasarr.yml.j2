@@ -10,8 +10,10 @@ releasarr:
     - {{ stack_config.config_path }}/releasarr:/config
     - {{ stack_config.data_path}}/releasarr/Library:/library
     - {{ stack_config.data_path}}/releasarr/logs:/logs
+{% if services.releasarr.port is defined %}
   ports:
     - "{{ services.releasarr.port }}:1337"
+{% endif %}
 {% if services.releasarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -37,5 +39,3 @@ releasarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

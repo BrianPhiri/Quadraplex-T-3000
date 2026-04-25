@@ -12,6 +12,8 @@ cadvisor:
     - /sys:/sys:ro
     - /var/lib/docker/:/var/lib/docker:ro
     - /dev/disk/:/dev/disk:ro
+{% if services.cadvisor.port is defined %}
   ports:
     - "{{ services.cadvisor.port }}:8080"
+{% endif %}
   restart: unless-stopped

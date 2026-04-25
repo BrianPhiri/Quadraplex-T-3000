@@ -1,8 +1,10 @@
 boxarr:
   image: ghcr.io/iongpt/boxarr:{{ services.boxarr.version }}
   container_name: boxarr
+{% if services.boxarr.port is defined %}
   ports:
     - {{ services.boxarr.port }}:8888
+{% endif %}
   volumes:
     - {{ stack_config.config_path }}/boxarr:/config
   restart: unless-stopped
@@ -35,4 +37,3 @@ boxarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-

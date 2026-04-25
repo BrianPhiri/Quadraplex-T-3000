@@ -2,8 +2,10 @@ gotify:
   image: gotify/server
   container_name: gotify
   restart: unless-stopped
+{% if services.gotify.port is defined %}
   ports:
     - "{{ services.gotify.port }}:80"
+{% endif %}
   environment:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
@@ -35,5 +37,3 @@ gotify:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

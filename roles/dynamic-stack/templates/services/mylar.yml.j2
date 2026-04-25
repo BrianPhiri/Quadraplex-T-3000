@@ -10,8 +10,10 @@ mylar3:
     - {{ stack_config.config_path }}/mylar:/config
     - {{ stack_config.media_path }}/books:/comics
     - {{ stack_config.downloads_path }}:/downloads
+{% if services.mylar.port is defined %}
   ports:
     - "{{ services.mylar.port }}:8090"
+{% endif %}
 {% if services.mylar.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -39,5 +41,3 @@ mylar3:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

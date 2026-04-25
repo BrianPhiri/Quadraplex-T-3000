@@ -43,6 +43,28 @@
   loop: "{{ stack_services }}"
   when: services[item].enabled | default(true)
 
+- name: Create Grafana subdirectories
+  file:
+    path: "{{ stack_config.data_path }}/grafana/{{ item }}"
+    state: directory
+    owner: "{{ stack_user_id }}"
+    group: "{{ stack_group_id }}"
+    mode: '0755'
+  loop:
+    - lib
+    - plugins
+    - provisioning
+  when: services.grafana.enabled | default(false)
+
+- name: Fix permissions for existing Grafana data directory
+  file:
+    path: "{{ stack_config.data_path }}/grafana"
+    owner: "{{ stack_user_id }}"
+    group: "{{ stack_group_id }}"
+    recurse: yes
+  when: services.grafana.enabled | default(false)
+  ignore_errors: yes
+
 # Permissions already set per-service above - recursive operation removed for performance
 
 - name: Create backup directory

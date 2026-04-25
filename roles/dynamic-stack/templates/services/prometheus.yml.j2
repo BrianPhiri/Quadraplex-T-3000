@@ -1,0 +1,45 @@
+prometheus:
+  image: prom/prometheus:{{ services.prometheus.version }}
+  container_name: prometheus
+  restart: unless-stopped
+  user: "{{ stack_config.user_id }}:{{ stack_config.group_id }}"
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    - {{ stack_config.data_path }}/prometheus:/prometheus
+  command:
+    - "--config.file=/etc/prometheus/prometheus.yml"
+    - "--storage.tsdb.path=/prometheus"
+    - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+    - "--web.console.templates=/usr/share/prometheus/consoles"
+    - "--web.enable-lifecycle"
+  ports:
+    - "{{ services.prometheus.port }}:9090"
+{% if services.prometheus.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.prometheus.rule=Host(`{{ services.prometheus.traefik.host }}.{{ services.prometheus.traefik.domain }}`)
+    - traefik.http.routers.prometheus.entrypoints=https
+    - traefik.http.routers.prometheus.tls=true
+    - traefik.http.routers.prometheus-http.rule=Host(`{{ services.prometheus.traefik.host }}.{{ services.prometheus.traefik.domain }}`)
+    - traefik.http.routers.prometheus-http.entrypoints=http
+    - traefik.http.routers.prometheus-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.prometheus.loadbalancer.server.port=9090
+    - traefik.http.services.prometheus.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.prometheus.networks is defined %}
+  networks:
+{% for network in services.prometheus.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.prometheus.dnss is defined %}
+  dns:
+{% for dns in services.prometheus.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

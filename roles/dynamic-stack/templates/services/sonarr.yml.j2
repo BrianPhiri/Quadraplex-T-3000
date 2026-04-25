@@ -10,8 +10,10 @@ sonarr:
     - {{ stack_config.config_path }}/sonarr:/config
     - {{ stack_config.media_path }}/tv:/tv
     - {{ stack_config.downloads_path }}:/downloads
+{% if services.sonarr.port is defined %}
   ports:
     - "{{ services.sonarr.port }}:8989"
+{% endif %}
 {% if services.sonarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -39,5 +41,3 @@ sonarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

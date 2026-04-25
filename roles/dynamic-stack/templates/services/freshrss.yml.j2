@@ -2,8 +2,10 @@ freshrss:
   image: lscr.io/linuxserver/freshrss:{{ services.freshrss.version }}
   container_name: freshrss
   restart: unless-stopped
+{% if services.freshrss.port is defined %}
   ports:
     - "{{ services.freshrss.port }}:80"
+{% endif %}
   environment:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
@@ -35,5 +37,3 @@ freshrss:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

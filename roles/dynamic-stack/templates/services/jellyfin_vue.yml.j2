@@ -6,8 +6,10 @@ jellyfin_vue:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
+{% if services.jellyfin_vue.port is defined %}
   ports:
     - "{{ services.jellyfin_vue.port }}:80"
+{% endif %}
 {% if services.jellyfin_vue.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -35,5 +37,3 @@ jellyfin_vue:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

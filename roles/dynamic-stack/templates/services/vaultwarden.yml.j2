@@ -7,8 +7,10 @@ vaultwarden:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.data_path }}/vaultwarden/vw-data:/data/
+{% if services.vaultwarden.port is defined %}
   ports:
     - "{{ services.vaultwarden.port }}:80"
+{% endif %}
 {% if services.vaultwarden.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -35,5 +37,3 @@ vaultwarden:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

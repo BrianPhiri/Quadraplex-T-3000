@@ -8,8 +8,10 @@ homarr:
     - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
     - SECRET_ENCRYPTION_KEY={{ services.homarr.secret_key }}
+{% if services.homarr.port is defined %}
   ports:
     - "{{ services.homarr.port }}:7575"
+{% endif %}
 {% if services.homarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -35,5 +37,3 @@ homarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-	

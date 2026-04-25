@@ -1,0 +1,44 @@
+lazylibrarian:
+  image: lscr.io/linuxserver/lazylibrarian:{{ services.lazylibrarian.version }}
+  container_name: lazylibrarian
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+{% if services.lazylibrarian.docker_mods is defined %}
+    - DOCKER_MODS={{ services.lazylibrarian.docker_mods }}
+{% endif %}
+  volumes:
+    - {{ stack_config.config_path }}/lazylibrarian:/config
+    - {{ stack_config.downloads_path }}:/downloads
+    - {{ stack_config.media_path }}/books:/books
+{% if services.lazylibrarian.port is defined %}
+  ports:
+    - "{{ services.lazylibrarian.port }}:5299"
+{% endif %}
+{% if services.lazylibrarian.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.lazylibrarian.rule=Host(`{{ services.lazylibrarian.traefik.host }}.{{ services.lazylibrarian.traefik.domain }}`)
+    - traefik.http.routers.lazylibrarian.entrypoints=https
+    - traefik.http.routers.lazylibrarian.tls=true
+    - traefik.http.routers.lazylibrarian-http.rule=Host(`{{ services.lazylibrarian.traefik.host }}.{{ services.lazylibrarian.traefik.domain }}`)
+    - traefik.http.routers.lazylibrarian-http.entrypoints=http
+    - traefik.http.routers.lazylibrarian-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.lazylibrarian.loadbalancer.server.port=5299
+    - traefik.http.services.lazylibrarian.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.lazylibrarian.networks is defined %}
+  networks:
+{% for network in services.lazylibrarian.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.lazylibrarian.dnss is defined %}
+  dns:
+{% for dns in services.lazylibrarian.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

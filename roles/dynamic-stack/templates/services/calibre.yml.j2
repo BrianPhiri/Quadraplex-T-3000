@@ -1,0 +1,44 @@
+calibre:
+  image: lscr.io/linuxserver/calibre:{{ services.calibre.version }}
+  container_name: calibre
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+{% if services.calibre.password is defined and services.calibre.password %}
+    - PASSWORD={{ services.calibre.password }}
+{% endif %}
+  volumes:
+    - {{ stack_config.config_path }}/calibre:/config
+    - {{ stack_config.media_path }}/books:/books
+{% if services.calibre.port is defined %}
+  ports:
+    - "{{ services.calibre.port }}:8080"
+    - "{{ services.calibre.webserver_port }}:8181"
+{% endif %}
+{% if services.calibre.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.calibre.rule=Host(`{{ services.calibre.traefik.host }}.{{ services.calibre.traefik.domain }}`)
+    - traefik.http.routers.calibre.entrypoints=https
+    - traefik.http.routers.calibre.tls=true
+    - traefik.http.routers.calibre-http.rule=Host(`{{ services.calibre.traefik.host }}.{{ services.calibre.traefik.domain }}`)
+    - traefik.http.routers.calibre-http.entrypoints=http
+    - traefik.http.routers.calibre-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.calibre.loadbalancer.server.port=8080
+    - traefik.http.services.calibre.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.calibre.networks is defined %}
+  networks:
+{% for network in services.calibre.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.calibre.dnss is defined %}
+  dns:
+{% for dns in services.calibre.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

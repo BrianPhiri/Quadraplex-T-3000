@@ -12,8 +12,10 @@ nextcloud-db:
     - POSTGRES_DB={{ services.nextcloud.db.name }}
     - POSTGRES_NON_ROOT_USER={{ services.nextcloud.db.user_non_root }}
     - POSTGRES_NON_ROOT_PASSWORD={{ services.nextcloud.db.password_non_root }}
+{% if services.nextcloud.db.port is defined %}
   ports:
     - 5433:5432
+{% endif %}
 {% if services.nextcloud.networks is defined %}
   networks:
 {% for network in services.nextcloud.networks %}
@@ -24,8 +26,10 @@ nextcloud-db:
 nextcloud:
   image: nextcloud:{{ services.nextcloud.version }}
   container_name: nextcloud
+{% if services.nextcloud.port is defined %}
   ports:
     - {{ services.nextcloud.port }}:80
+{% endif %}
   links:
     - nextcloud-db
   volumes:
@@ -61,5 +65,3 @@ nextcloud:
     - {{ network }}
 {% endfor %}
 {% endif %}
-
-

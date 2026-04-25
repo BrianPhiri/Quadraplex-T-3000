@@ -5,15 +5,16 @@ apprise:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
+{% if services.apprise.port is defined %}
   ports:
     - '{{ services.apprise.port }}:8000'
+{% endif %}
   volumes:
     - '{{ stack_config.config_path }}/apprise:/config'
-  restart: unless-stopped 
+  restart: unless-stopped
 {% if services.apprise.networks is defined %}
   networks:
 {% for network in services.apprise.networks %}
     - {{ network }}
 {% endfor %}
 {% endif %}
-

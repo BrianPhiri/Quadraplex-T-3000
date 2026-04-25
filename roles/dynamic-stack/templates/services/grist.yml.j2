@@ -2,8 +2,10 @@ grist:
   image: gristlabs/grist
   container_name: grist
   restart: unless-stopped
+{% if services.grist.port is defined %}
   ports:
     - "{{ services.grist.port }}:8484"
+{% endif %}
   environment:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
@@ -37,5 +39,3 @@ grist:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

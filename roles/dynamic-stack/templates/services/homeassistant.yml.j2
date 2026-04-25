@@ -7,8 +7,10 @@ homeassistant:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/homeassistant:/config
+{% if services.homeassistant.port is defined %}
   ports:
     - "{{ services.homeassistant.port }}:8123"
+{% endif %}
 {% if services.homeassistant.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -34,5 +36,3 @@ homeassistant:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-	

@@ -1,0 +1,43 @@
+pairdrop:
+  image: lscr.io/linuxserver/pairdrop:{{ services.pairdrop.version }}
+  container_name: pairdrop
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - WS_FALLBACK={{ services.pairdrop.ws_fallback | default('false') }}
+    - RATE_LIMIT={{ services.pairdrop.rate_limit | default('false') }}
+    - RTC_CONFIG={{ services.pairdrop.rtc_config | default('false') }}
+    - DEBUG_MODE={{ services.pairdrop.debug_mode | default('false') }}
+  volumes:
+    - {{ stack_config.config_path }}/pairdrop:/config
+{% if services.pairdrop.port is defined %}
+  ports:
+    - "{{ services.pairdrop.port }}:3000"
+{% endif %}
+{% if services.pairdrop.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.pairdrop.rule=Host(`{{ services.pairdrop.traefik.host }}.{{ services.pairdrop.traefik.domain }}`)
+    - traefik.http.routers.pairdrop.entrypoints=https
+    - traefik.http.routers.pairdrop.tls=true
+    - traefik.http.routers.pairdrop-http.rule=Host(`{{ services.pairdrop.traefik.host }}.{{ services.pairdrop.traefik.domain }}`)
+    - traefik.http.routers.pairdrop-http.entrypoints=http
+    - traefik.http.routers.pairdrop-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.pairdrop.loadbalancer.server.port=3000
+    - traefik.http.services.pairdrop.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.pairdrop.networks is defined %}
+  networks:
+{% for network in services.pairdrop.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.pairdrop.dnss is defined %}
+  dns:
+{% for dns in services.pairdrop.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

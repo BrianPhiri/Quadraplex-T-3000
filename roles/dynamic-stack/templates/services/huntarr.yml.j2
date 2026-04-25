@@ -7,8 +7,10 @@ huntarr:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/huntarr:/config
+{% if services.huntarr.port is defined %}
   ports:
     - "{{ services.huntarr.port }}:9705"
+{% endif %}
 
 {% if services.huntarr.traefik.enabled | default(false) %}
   labels:
@@ -23,7 +25,7 @@ huntarr:
     - traefik.http.services.huntarr.loadbalancer.server.port=9705
     - traefik.http.services.huntarr.loadbalancer.server.scheme=http
 {% endif %}
-	
+
 {% if services.huntarr.networks is defined %}
   networks:
 {% for network in services.huntarr.networks %}
@@ -36,5 +38,3 @@ huntarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

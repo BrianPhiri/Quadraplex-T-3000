@@ -52,22 +52,13 @@ media_stack:
     jellyfin_vue: "unstable"
     immich: "v2.3.1"
     freshrss: "latest"
+    calibre: "latest"
+    audiobookshelf: "latest"
+    lazylibrarian: "latest"
+    shelfmark: "latest"
 
 # Service configuration
 media_services:
-  cadvisor:
-    enabled: true
-    port: 8081
-    version: "{{ media_stack.versions.cadvisor | default('latest') }}"
-  node_exporter:
-    enabled: true
-    port: 9100
-    version: "{{ media_stack.versions.node_exporter | default('latest') }}"
-  netbird:
-    enabled: false
-    version: "{{ media_stack.versions.netbird | default('latest') }}"
-    hostname: media
-    setup_key: "{{ netbird_setup_key | default('') }}"
   filebrowser:
     enabled: false
     port: 89
@@ -81,7 +72,6 @@ media_services:
       domain: "{{ domain }}"
   prowlarr:
     enabled: true
-    port: 9696
     version: "{{ media_stack.versions.prowlarr | default('latest') }}"
     networks:
       - traefik_net
@@ -91,7 +81,6 @@ media_services:
       domain: "{{ domain }}"
   sonarr:
     enabled: true
-    port: 8989
     version: "{{ media_stack.versions.sonarr | default('latest') }}"
     networks:
       - traefik_net
@@ -101,7 +90,6 @@ media_services:
       domain: "{{ domain }}"
   radarr:
     enabled: true
-    port: 7878
     version: "{{ media_stack.versions.radarr | default('latest') }}"
     networks:
       - traefik_net
@@ -111,7 +99,6 @@ media_services:
       domain: "{{ domain }}"
   seerr:
     enabled: true
-    port: 5055
     version: "{{ media_stack.versions.seerr | default('latest') }}"
     networks:
       - traefik_net
@@ -121,7 +108,6 @@ media_services:
       domain: "{{ domain }}"
   jellyfin:
     enabled: true
-    port: 8096
     version: "{{ media_stack.versions.jellyfin | default('latest') }}"
     networks:
       - traefik_net
@@ -206,7 +192,6 @@ media_services:
       domain: "{{ domain }}"
   kavita:
     enabled: true
-    port: 5001
     internal_port: 5003
     version: "{{ media_stack.versions.kavita | default('latest') }}"
     networks:
@@ -229,7 +214,6 @@ media_services:
       domain: "{{ domain }}"
   mylar:
     enabled: true
-    port: 8090
     version: "{{ media_stack.versions.mylar | default('latest') }}"
     networks:
       - traefik_net
@@ -264,4 +248,43 @@ media_services:
     traefik:
       enabled: false
       host: "feed"
+      domain: "{{ domain }}"
+  calibre:
+    enabled: false
+    webserver_port: 8181
+    version: "{{ media_stack.versions.calibre | default('latest') }}"
+    # password: ""  # Optional: Set in vault.yml for GUI access
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "calibre"
+      domain: "{{ domain }}"
+  audiobookshelf:
+    enabled: false
+    version: "{{ media_stack.versions.audiobookshelf | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "audiobooks"
+      domain: "{{ domain }}"
+  lazylibrarian:
+    enabled: false
+    version: "{{ media_stack.versions.lazylibrarian | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "lazylibrarian"
+      domain: "{{ domain }}"
+  shelfmark:
+    enabled: false
+    version: "{{ media_stack.versions.shelfmark | default('latest') }}"
+    # calibre_url: "http://calibre:8181"  # Optional: Link to Calibre server
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "shelfmark"
       domain: "{{ domain }}"

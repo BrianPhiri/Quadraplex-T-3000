@@ -28,11 +28,9 @@ dns_stack:
 dns_services:
   cadvisor:
     enabled: false
-    port: 8081
     version: "{{ core_stack.versions.cadvisor | default('latest') }}"
   node_exporter:
     enabled: false
-    port: 9100
     version: "{{ core_stack.versions.node_exporter | default('latest') }}"
   adguard_home:
     enabled: true

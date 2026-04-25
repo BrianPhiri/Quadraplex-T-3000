@@ -8,8 +8,10 @@ suggestarr:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/suggestarr:/app/config/config_files
+{% if services.suggestarr.port is defined %}
   ports:
     - "{{ services.suggestarr.port }}:5000"
+{% endif %}
 {% if services.suggestarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -36,5 +38,3 @@ suggestarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

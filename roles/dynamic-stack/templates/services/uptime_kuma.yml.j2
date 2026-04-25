@@ -8,8 +8,10 @@ uptime_kuma:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.data_path }}/uptime_kuma:/app/data
+{% if services.uptime_kuma.port is defined %}
   ports:
     - "{{ services.uptime_kuma.port }}:3001"
+{% endif %}
 {% if services.uptime_kuma.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -36,5 +38,3 @@ uptime_kuma:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

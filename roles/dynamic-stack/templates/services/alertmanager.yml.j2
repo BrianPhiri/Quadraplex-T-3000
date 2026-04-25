@@ -11,8 +11,10 @@ alertmanager:
   command:
     - "--config.file=/etc/alertmanager/alertmanager.yml"
     - "--storage.path=/alertmanager"
+{% if services.alertmanager.port is defined %}
   ports:
     - "{{ services.alertmanager.port }}:9093"
+{% endif %}
   restart: unless-stopped
 {% if services.alertmanager.networks is defined %}
   networks:
@@ -20,4 +22,3 @@ alertmanager:
     - {{ network }}
 {% endfor %}
 {% endif %}
-

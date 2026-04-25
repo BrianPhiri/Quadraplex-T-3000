@@ -8,8 +8,10 @@ seerr:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/seerr:/app/config
+{% if services.seerr.port is defined %}
   ports:
     - "{{ services.seerr.port }}:5055"
+{% endif %}
 {% if services.seerr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true

@@ -8,8 +8,10 @@ glance:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.data_path }}/glance:/app/config
+{% if services.glance.port is defined %}
   ports:
     - {{ services.glance.port }}:8080
+{% endif %}
 {% if services.glance.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -35,5 +37,3 @@ glance:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

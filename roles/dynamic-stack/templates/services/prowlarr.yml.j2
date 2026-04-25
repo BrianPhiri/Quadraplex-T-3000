@@ -8,8 +8,10 @@ prowlarr:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/prowlarr:/config
+{% if services.prowlarr.port is defined %}
   ports:
     - "{{ services.prowlarr.port }}:9696"
+{% endif %}
 {% if services.prowlarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -36,5 +38,3 @@ prowlarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

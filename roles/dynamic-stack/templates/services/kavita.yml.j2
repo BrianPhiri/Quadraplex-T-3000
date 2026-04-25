@@ -9,8 +9,10 @@ kavita:
   volumes:
     - {{ stack_config.config_path }}/kavita:/config
     - {{ stack_config.media_path }}/books:/data
+{% if services.kavita.port is defined %}
   ports:
     - "{{ services.kavita.port }}:5000"
+{% endif %}
 {% if services.kavita.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -38,5 +40,3 @@ kavita:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

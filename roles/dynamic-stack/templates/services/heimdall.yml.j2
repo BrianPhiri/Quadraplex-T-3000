@@ -8,9 +8,11 @@ heimdall:
     - ALLOW_INTERNAL_REQUESTS=false #optional
   volumes:
     - {{ stack_config.config_path }}/heimdall:/config
+{% if services.heimdall.http is defined %}
   ports:
     - "{{ services.heimdall.http }}:80"
     - "{{ services.heimdall.https }}:443"
+{% endif %}
 {% if services.heimdall.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -36,4 +38,3 @@ heimdall:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-

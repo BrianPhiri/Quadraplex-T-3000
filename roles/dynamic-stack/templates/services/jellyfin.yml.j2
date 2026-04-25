@@ -11,11 +11,13 @@ jellyfin:
     - {{ stack_config.media_path }}/movies:/data/movies:ro
     - {{ stack_config.media_path }}/tv:/data/tvshows:ro
     - {{ stack_config.media_path }}/music:/data/music:ro
+{% if services.jellyfin.port is defined %}
   ports:
     - "{{ services.jellyfin.port }}:8096"
     - 8920:8920
     - 7359:7359/udp
     - 1900:1900/udp
+{% endif %}
 {% if services.jellyfin.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -43,5 +45,3 @@ jellyfin:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

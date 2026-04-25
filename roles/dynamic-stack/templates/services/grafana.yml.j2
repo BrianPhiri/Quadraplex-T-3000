@@ -11,8 +11,10 @@ grafana:
     - {{ stack_config.data_path }}/grafana/lib:/var/lib/grafana
     - {{ stack_config.data_path }}/grafana/plugins:/var/lib/grafana/plugins
     - {{ stack_config.data_path }}/grafana/provisioning:/etc/grafana/provisioning
+{% if services.grafana.port is defined %}
   ports:
     - "{{ services.grafana.port }}:3000"
+{% endif %}
 {% if services.grafana.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -23,7 +25,7 @@ grafana:
     - traefik.http.routers.grafana-http.entrypoints=http
     - traefik.http.routers.grafana-http.middlewares=redirect-to-https
     - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-    - traefik.http.services.grafana.loadbalancer.server.port=80
+    - traefik.http.services.grafana.loadbalancer.server.port=3000
     - traefik.http.services.grafana.loadbalancer.server.scheme=http
 {% endif %}
 {% if services.grafana.networks is defined %}
@@ -38,5 +40,3 @@ grafana:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

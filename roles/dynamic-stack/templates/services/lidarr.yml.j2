@@ -10,8 +10,10 @@ lidarr:
     - {{ stack_config.config_path }}/lidarr:/config
     - {{ stack_config.media_path }}/music:/music
     - {{ stack_config.downloads_path}}:/downloads
+{% if services.lidarr.port is defined %}
   ports:
     - "{{ services.lidarr.port }}:8686"
+{% endif %}
 {% if services.lidarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -38,5 +40,3 @@ lidarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

@@ -1,0 +1,43 @@
+shelfmark:
+  image: ghcr.io/calibrain/shelfmark:{{ services.shelfmark.version }}
+  container_name: shelfmark
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+{% if services.shelfmark.calibre_url is defined and services.shelfmark.calibre_url %}
+    - CALIBRE_URL={{ services.shelfmark.calibre_url }}
+{% endif %}
+  volumes:
+    - {{ stack_config.config_path }}/shelfmark:/config
+    - {{ stack_config.media_path }}/books:/books
+{% if services.shelfmark.port is defined %}
+  ports:
+    - "{{ services.shelfmark.port }}:8084"
+{% endif %}
+{% if services.shelfmark.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.shelfmark.rule=Host(`{{ services.shelfmark.traefik.host }}.{{ services.shelfmark.traefik.domain }}`)
+    - traefik.http.routers.shelfmark.entrypoints=https
+    - traefik.http.routers.shelfmark.tls=true
+    - traefik.http.routers.shelfmark-http.rule=Host(`{{ services.shelfmark.traefik.host }}.{{ services.shelfmark.traefik.domain }}`)
+    - traefik.http.routers.shelfmark-http.entrypoints=http
+    - traefik.http.routers.shelfmark-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.shelfmark.loadbalancer.server.port=8084
+    - traefik.http.services.shelfmark.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.shelfmark.networks is defined %}
+  networks:
+{% for network in services.shelfmark.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.shelfmark.dnss is defined %}
+  dns:
+{% for dns in services.shelfmark.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,42 @@
+audiobookshelf:
+  image: ghcr.io/advplyr/audiobookshelf:{{ services.audiobookshelf.version }}
+  container_name: audiobookshelf
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/audiobookshelf:/config
+    - {{ stack_config.config_path }}/audiobookshelf/metadata:/metadata
+    - {{ stack_config.media_path }}/audiobooks:/audiobooks
+    - {{ stack_config.media_path }}/podcasts:/podcasts
+{% if services.audiobookshelf.port is defined %}
+  ports:
+    - "{{ services.audiobookshelf.port }}:13378"
+{% endif %}
+{% if services.audiobookshelf.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.audiobookshelf.rule=Host(`{{ services.audiobookshelf.traefik.host }}.{{ services.audiobookshelf.traefik.domain }}`)
+    - traefik.http.routers.audiobookshelf.entrypoints=https
+    - traefik.http.routers.audiobookshelf.tls=true
+    - traefik.http.routers.audiobookshelf-http.rule=Host(`{{ services.audiobookshelf.traefik.host }}.{{ services.audiobookshelf.traefik.domain }}`)
+    - traefik.http.routers.audiobookshelf-http.entrypoints=http
+    - traefik.http.routers.audiobookshelf-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.audiobookshelf.loadbalancer.server.port=80
+    - traefik.http.services.audiobookshelf.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.audiobookshelf.networks is defined %}
+  networks:
+{% for network in services.audiobookshelf.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.audiobookshelf.dnss is defined %}
+  dns:
+{% for dns in services.audiobookshelf.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

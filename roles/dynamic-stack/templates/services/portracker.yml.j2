@@ -1,0 +1,43 @@
+portracker:
+  image: mostafawahied/portracker:{{ services.portracker.version }}
+  container_name: portracker
+  restart: unless-stopped
+  pid: "host"
+  cap_add:
+    - SYS_PTRACE
+    - SYS_ADMIN
+  security_opt:
+    - apparmor:unconfined
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+{% if services.portracker.truenas_api_key is defined and services.portracker.truenas_api_key %}
+    - TRUENAS_API_KEY={{ services.portracker.truenas_api_key }}
+{% endif %}
+  volumes:
+    - {{ stack_config.data_path }}/portracker:/data
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+{% if services.portracker.port is defined %}
+  ports:
+    - "{{ services.portracker.port }}:4999"
+{% endif %}
+{% if services.portracker.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.portracker.rule=Host(`{{ services.portracker.traefik.host }}.{{ services.portracker.traefik.domain }}`)
+    - traefik.http.routers.portracker.entrypoints=https
+    - traefik.http.routers.portracker.tls=true
+    - traefik.http.routers.portracker-http.rule=Host(`{{ services.portracker.traefik.host }}.{{ services.portracker.traefik.domain }}`)
+    - traefik.http.routers.portracker-http.entrypoints=http
+    - traefik.http.routers.portracker-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.portracker.loadbalancer.server.port=4999
+    - traefik.http.services.portracker.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.portracker.networks is defined %}
+  networks:
+{% for network in services.portracker.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}

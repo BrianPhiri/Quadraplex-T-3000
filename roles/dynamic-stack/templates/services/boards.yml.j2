@@ -6,8 +6,10 @@ boards:
     - {{ stack_config.data_path }}/boards/user-avatars:/app/public/user-avatars
     - {{ stack_config.data_path }}/boards/project-background-images:/app/public/project-background-images
     - {{ stack_config.data_path }}/boards/attachments:/app/private/attachments
+{% if services.boards.port is defined %}
   ports:
     - {{ services.boards.port }}:1337
+{% endif %}
   environment:
     - BASE_URL=https://{{ services.boards.traefik.host }}.{{ services.boards.traefik.domain }}
     - SECRET_KEY={{ services.boards.secret_key }}
@@ -52,8 +54,10 @@ boards-db:
     - POSTGRES_DB={{ services.boards.db.name }}
     - POSTGRES_PASSWORD={{ services.boards.db.password }}
     - POSTGRES_INITDB_ARGS='-A scram-sha-256'
+{% if services.boards.db.port is defined %}
   ports:
     - 5432:5432
+{% endif %}
   healthcheck:
     test: ['CMD-SHELL', 'pg_isready -U postgres -d boards']
     interval: 1s
@@ -65,4 +69,3 @@ boards-db:
     - {{ network }}
 {% endfor %}
 {% endif %}
-

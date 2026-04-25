@@ -17,8 +17,10 @@ immich_server:
     - DB_POSTGRESDB_HOST=database
     - DB_HOSTNAME=database
     - REDIS_HOSTNAME=redis
-  ports: 
+{% if services.immich.port is defined %}
+  ports:
     - "{{ services.immich.port }}:2283"
+{% endif %}
   depends_on:
     - redis
     - database
@@ -125,5 +127,3 @@ database:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

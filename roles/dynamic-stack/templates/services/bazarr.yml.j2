@@ -10,8 +10,10 @@ bazarr:
     - {{ stack_config.config_path }}/bazarr:/config
     - {{ stack_config.media_path }}/movies:/movies
     - {{ stack_config.media_path }}/tv:/tv
+{% if services.bazarr.port is defined %}
   ports:
     - "{{ services.bazarr.port }}:6767"
+{% endif %}
 {% if services.bazarr.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -38,5 +40,3 @@ bazarr:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

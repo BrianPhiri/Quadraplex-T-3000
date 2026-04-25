@@ -2,9 +2,11 @@ etcd:
   image: quay.io/coreos/etcd:{{ services.etcd.version }}
   container_name: {{ services.etcd.name }}
   restart: unless-stopped
+{% if services.etcd.port is defined %}
   ports:
     - "2379:2379"
     - "2380:2380"
+{% endif %}
   environment:
     - ETCD_NAME={{ services.etcd.name }}
     - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://{{ services.etcd.host_ip }}:2380
@@ -23,4 +25,3 @@ etcd:
     - {{ network }}
 {% endfor %}
 {% endif %}
-

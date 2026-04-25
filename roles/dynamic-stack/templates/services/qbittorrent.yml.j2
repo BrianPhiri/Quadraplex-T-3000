@@ -6,14 +6,18 @@ qbittorrent:
     - PUID={{ stack_config.user_id }}
     - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
-    - WEBUI_PORT={{ services.qbittorrent.port }}
+    - WEBUI_PORT={{ services.qbittorrent.port | default('8080') }}
   volumes:
     - {{ stack_config.config_path }}/qbittorrent:/config
     - {{ stack_config.downloads_path }}:/downloads
+{% if services.qbittorrent.port is defined %}
   ports:
     - "{{ services.qbittorrent.port }}:8080"
+{% if services.qbittorrent.peer_port is defined %}
     - "{{ services.qbittorrent.peer_port }}:6881"
     - "{{ services.qbittorrent.peer_port }}:6881/udp"
+{% endif %}
+{% endif %}
 {% if services.qbittorrent.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
@@ -41,5 +45,3 @@ qbittorrent:
     - {{ dns }}
 {% endfor %}
 {% endif %}
-
-

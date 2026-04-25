@@ -11,5 +11,7 @@ node_exporter:
   restart: unless-stopped
   volumes:
     - "/:/host:ro,rslave"
+{% if services.node_exporter.port is defined %}
   ports:
     - "{{ services.node_exporter.port }}:9100"
+{% endif %}
