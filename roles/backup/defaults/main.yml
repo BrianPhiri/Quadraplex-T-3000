@@ -1,0 +1,114 @@
+---
+# Backup role default variables
+
+# Backup base directory
+backup_base_dir: "/backup"
+
+# Backup retention (days)
+backup_retention_local: 14
+backup_retention_remote: 90
+
+# Backup schedules
+backup_postgres_schedule: hourly  # hourly for critical databases
+backup_full_schedule: daily       # daily for all other data
+
+# S3/rclone configuration
+backup_s3_enabled: true
+backup_s3_remote_name: "s3backup"
+backup_s3_bucket: "quadraplex-backups"
+backup_s3_path_prefix: "{{ inventory_hostname }}"
+
+# Rclone binary path
+backup_rclone_bin: "/usr/bin/rclone"
+backup_rclone_config_dir: "/root/.config/rclone"
+
+# Compression settings
+backup_compression_level: 6  # gzip compression level (1-9)
+
+# Backup notification settings
+backup_gotify_enabled: false
+backup_gotify_url: ""
+backup_gotify_token: ""
+
+# Service-specific backup settings
+backup_services:
+  # PostgreSQL databases (hourly backups)
+  postgres:
+    - name: immich
+      stack: media
+      database: immich
+      user: immich
+      container: immich_postgres
+    - name: n8n
+      stack: utility
+      database: n8n
+      user: n8n
+      container: n8n_postgres
+    - name: nextcloud
+      stack: utility
+      database: nextcloud
+      user: nextcloud
+      container: nextcloud_postgres
+    - name: boards
+      stack: utility
+      database: boards
+      user: boards
+      container: boards_postgres
+
+  # SQLite databases (daily backups)
+  sqlite:
+    - name: grafana
+      stack: utility
+      path: "/opt/utility-stack/data/grafana/lib/grafana.db"
+      container: grafana
+    - name: uptime_kuma
+      stack: utility
+      path: "/opt/utility-stack/data/uptime_kuma/kuma.db"
+      container: uptime_kuma
+    - name: vaultwarden
+      stack: utility
+      path: "/opt/utility-stack/data/vaultwarden/db.sqlite3"
+      container: vaultwarden
+    - name: sonarr
+      stack: media
+      path: "/opt/media-stack/configs/sonarr/sonarr.db"
+      container: sonarr
+    - name: radarr
+      stack: media
+      path: "/opt/media-stack/configs/radarr/radarr.db"
+      container: radarr
+    - name: prowlarr
+      stack: media
+      path: "/opt/media-stack/configs/prowlarr/prowlarr.db"
+      container: prowlarr
+    - name: jellyfin
+      stack: media
+      path: "/opt/media-stack/configs/jellyfin/data/library.db"
+      container: jellyfin
+    - name: kavita
+      stack: media
+      path: "/opt/media-stack/configs/kavita/config/kavita.db"
+      container: kavita
+
+  # Config directories (daily backups)
+  configs:
+    - name: proxy
+      stack: proxy
+      path: "/opt/proxy-stack/configs"
+    - name: dns
+      stack: dns
+      path: "/opt/dns-stack/configs"
+    - name: media
+      stack: media
+      path: "/opt/media-stack/configs"
+    - name: utility
+      stack: utility
+      path: "/opt/utility-stack/configs"
+
+  # Special data (daily backups)
+  data:
+    - name: prometheus
+      stack: utility
+      path: "/opt/utility-stack/data/prometheus"
+      type: prometheus_snapshot
+      container: prometheus

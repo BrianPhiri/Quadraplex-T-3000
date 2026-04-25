@@ -1,0 +1,126 @@
+---
+# S3 sync tasks using rclone
+
+- name: Verify rclone is configured
+  ansible.builtin.stat:
+    path: "{{ backup_rclone_config_dir }}/rclone.conf"
+  register: rclone_config_stat
+
+- name: Fail if rclone not configured
+  when: not rclone_config_stat.stat.exists
+  ansible.builtin.fail:
+    msg: "Rclone configuration not found. Run backup setup first."
+
+- name: Test S3 connection
+  ansible.builtin.command: >
+    {{ backup_rclone_bin }} lsd {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/
+  register: rclone_test
+  changed_when: false
+  failed_when: false
+
+- name: Warn if S3 connection fails
+  when: rclone_test.rc != 0
+  ansible.builtin.debug:
+    msg: "WARNING: Cannot connect to S3 remote. Check credentials and network connectivity."
+
+- name: Sync backups to S3
+  when: rclone_test.rc == 0
+  block:
+    - name: Sync proxy backups to S3
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} sync
+        {{ backup_base_dir }}/proxy/
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/proxy/
+        --transfers 4
+        --checkers 8
+        --log-level INFO
+      register: sync_proxy
+      changed_when: "'Transferred:' in sync_proxy.stderr and 'Transferred: 0' not in sync_proxy.stderr"
+      failed_when: false
+
+    - name: Sync DNS backups to S3
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} sync
+        {{ backup_base_dir }}/dns/
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/dns/
+        --transfers 4
+        --checkers 8
+        --log-level INFO
+      register: sync_dns
+      changed_when: "'Transferred:' in sync_dns.stderr and 'Transferred: 0' not in sync_dns.stderr"
+      failed_when: false
+
+    - name: Sync media backups to S3
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} sync
+        {{ backup_base_dir }}/media/
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/media/
+        --transfers 4
+        --checkers 8
+        --log-level INFO
+      register: sync_media
+      changed_when: "'Transferred:' in sync_media.stderr and 'Transferred: 0' not in sync_media.stderr"
+      failed_when: false
+
+    - name: Sync utility backups to S3
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} sync
+        {{ backup_base_dir }}/utility/
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/utility/
+        --transfers 4
+        --checkers 8
+        --log-level INFO
+      register: sync_utility
+      changed_when: "'Transferred:' in sync_utility.stderr and 'Transferred: 0' not in sync_utility.stderr"
+      failed_when: false
+
+    - name: Clean up old S3 backups (retention policy)
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} delete
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/
+        --min-age {{ backup_retention_remote }}d
+        --log-level INFO
+      register: s3_cleanup
+      changed_when: "'Deleted' in s3_cleanup.stderr"
+      failed_when: false
+
+    - name: Get S3 sync statistics
+      ansible.builtin.set_fact:
+        s3_synced: >-
+          {{ [sync_proxy, sync_dns, sync_media, sync_utility] | selectattr('changed', 'equalto', true) | list | length }}
+        s3_failed: >-
+          {{ [sync_proxy, sync_dns, sync_media, sync_utility] | selectattr('rc', 'ne', 0) | list | length }}
+
+    - name: Log S3 sync results
+      ansible.builtin.debug:
+        msg: "S3 sync completed: {{ s3_synced }} stack(s) updated, {{ s3_failed }} failed"
+
+    - name: Send Gotify notification on S3 sync failure
+      when: backup_gotify_enabled and s3_failed | int > 0
+      ansible.builtin.uri:
+        url: "{{ backup_gotify_url }}/message"
+        method: POST
+        headers:
+          X-Gotify-Key: "{{ backup_gotify_token }}"
+        body_format: json
+        body:
+          title: "S3 Sync Failed"
+          message: "{{ s3_failed }} stack(s) failed to sync to S3 on {{ inventory_hostname }}"
+          priority: 7
+      failed_when: false
+
+    - name: Verify S3 backup integrity
+      ansible.builtin.command: >
+        {{ backup_rclone_bin }} check
+        {{ backup_base_dir }}/
+        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/
+        --one-way
+        --checkers 8
+      register: integrity_check
+      changed_when: false
+      failed_when: false
+
+    - name: Warn if integrity check fails
+      when: integrity_check.rc != 0
+      ansible.builtin.debug:
+        msg: "WARNING: S3 backup integrity check found differences. Manual verification recommended."

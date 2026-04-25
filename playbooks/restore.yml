@@ -1,0 +1,54 @@
+---
+# Restore playbook for Quadraplex-T-3000 infrastructure
+# Supports restoring from local /backup or remote S3 storage
+
+- name: Restore Infrastructure
+  hosts: all
+  become: true
+  vars:
+    restore_service: "{{ restore_service | mandatory }}"
+    restore_stack: "{{ restore_stack | mandatory }}"
+    restore_date: "{{ restore_date | default(omit) }}"
+    restore_latest: "{{ restore_latest | default(false) }}"
+    restore_from_s3: "{{ restore_from_s3 | default(false) }}"
+    restore_dry_run: "{{ restore_dry_run | default(false) }}"
+
+  pre_tasks:
+    - name: Display restore configuration
+      ansible.builtin.debug:
+        msg:
+          - "Service: {{ restore_service }}"
+          - "Stack: {{ restore_stack }}"
+          - "Date: {{ restore_date | default('latest') }}"
+          - "From S3: {{ restore_from_s3 }}"
+          - "Dry run: {{ restore_dry_run }}"
+          - ""
+          - "WARNING: This will replace the current {{ restore_service }} database!"
+          - "Make sure you have a recent backup before proceeding."
+
+    - name: Pause for confirmation
+      when: not restore_dry_run and not restore_from_s3
+      ansible.builtin.pause:
+        prompt: "Press ENTER to continue or CTRL-C to abort"
+
+  tasks:
+    - name: Run restore operation
+      ansible.builtin.include_role:
+        name: backup
+        tasks_from: main.yml
+      vars:
+        backup_action: "restore"
+      tags:
+        - restore
+
+  post_tasks:
+    - name: Display restore completion message
+      ansible.builtin.debug:
+        msg:
+          - "Restore completed successfully"
+          - "Service: {{ restore_service }}"
+          - "Verify service functionality before resuming normal operations"
+          - ""
+          - "Check service status:"
+          - "  docker ps --filter name={{ restore_service }}"
+          - "  docker logs {{ restore_service }}"

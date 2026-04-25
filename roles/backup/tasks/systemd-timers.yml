@@ -1,0 +1,88 @@
+---
+# Systemd timer deployment tasks
+
+- name: Create systemd service for PostgreSQL hourly backups
+  ansible.builtin.template:
+    src: backup-systemd.service.j2
+    dest: /etc/systemd/system/backup-postgres-hourly.service
+    mode: '0644'
+  vars:
+    service_name: backup-postgres-hourly
+    service_description: "Hourly PostgreSQL database backups"
+    backup_command: "ansible-playbook /root/ansible/playbooks/backup.yml --extra-vars 'backup_action=postgres'"
+  notify:
+    - Reload systemd
+    - Enable and start backup-postgres-hourly timer
+
+- name: Create systemd timer for PostgreSQL hourly backups
+  ansible.builtin.template:
+    src: backup-systemd.timer.j2
+    dest: /etc/systemd/system/backup-postgres-hourly.timer
+    mode: '0644'
+  vars:
+    timer_name: backup-postgres-hourly
+    timer_description: "Run PostgreSQL backups every hour"
+    timer_on_calendar: "hourly"
+    timer_accuracy: "5min"
+  notify:
+    - Reload systemd
+    - Enable and start backup-postgres-hourly timer
+
+- name: Create systemd service for daily full backups
+  ansible.builtin.template:
+    src: backup-systemd.service.j2
+    dest: /etc/systemd/system/backup-daily.service
+    mode: '0644'
+  vars:
+    service_name: backup-daily
+    service_description: "Daily full system backup"
+    backup_command: "ansible-playbook /root/ansible/playbooks/backup.yml --extra-vars 'backup_action=daily'"
+  notify:
+    - Reload systemd
+    - Enable and start backup-daily timer
+
+- name: Create systemd timer for daily full backups
+  ansible.builtin.template:
+    src: backup-systemd.timer.j2
+    dest: /etc/systemd/system/backup-daily.timer
+    mode: '0644'
+  vars:
+    timer_name: backup-daily
+    timer_description: "Run full backup daily at 2 AM"
+    timer_on_calendar: "02:00"
+    timer_accuracy: "15min"
+  notify:
+    - Reload systemd
+    - Enable and start backup-daily timer
+
+- name: Create systemd service for S3 sync
+  when: backup_s3_enabled
+  ansible.builtin.template:
+    src: backup-systemd.service.j2
+    dest: /etc/systemd/system/backup-s3-sync.service
+    mode: '0644'
+  vars:
+    service_name: backup-s3-sync
+    service_description: "Sync backups to S3 storage"
+    backup_command: "ansible-playbook /root/ansible/playbooks/backup.yml --extra-vars 'backup_action=s3'"
+  notify:
+    - Reload systemd
+    - Enable and start backup-s3-sync timer
+
+- name: Create systemd timer for S3 sync
+  when: backup_s3_enabled
+  ansible.builtin.template:
+    src: backup-systemd.timer.j2
+    dest: /etc/systemd/system/backup-s3-sync.timer
+    mode: '0644'
+  vars:
+    timer_name: backup-s3-sync
+    timer_description: "Sync backups to S3 every 6 hours"
+    timer_on_calendar: "00/6:00"
+    timer_accuracy: "30min"
+  notify:
+    - Reload systemd
+    - Enable and start backup-s3-sync timer
+
+- name: Flush handlers to start timers
+  ansible.builtin.meta: flush_handlers

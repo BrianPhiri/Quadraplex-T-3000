@@ -1,0 +1,39 @@
+---
+# Backup role handlers
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start backup-postgres-hourly timer
+  ansible.builtin.systemd:
+    name: backup-postgres-hourly.timer
+    enabled: true
+    state: started
+
+- name: Enable and start backup-daily timer
+  ansible.builtin.systemd:
+    name: backup-daily.timer
+    enabled: true
+    state: started
+
+- name: Enable and start backup-s3-sync timer
+  ansible.builtin.systemd:
+    name: backup-s3-sync.timer
+    enabled: true
+    state: started
+
+- name: Restart backup-postgres-hourly timer
+  ansible.builtin.systemd:
+    name: backup-postgres-hourly.timer
+    state: restarted
+
+- name: Restart backup-daily timer
+  ansible.builtin.systemd:
+    name: backup-daily.timer
+    state: restarted
+
+- name: Restart backup-s3-sync timer
+  ansible.builtin.systemd:
+    name: backup-s3-sync.timer
+    state: restarted

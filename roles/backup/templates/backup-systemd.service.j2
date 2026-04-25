@@ -1,0 +1,18 @@
+[Unit]
+Description={{ service_description }}
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory={{ ansible_project_dir | default('/root/ansible') }}
+ExecStart=/bin/bash -c '{{ backup_command }}'
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ service_name }}
+
+# Timeout after 4 hours
+TimeoutStartSec=14400
+
+[Install]
+WantedBy=multi-user.target

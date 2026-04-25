@@ -1,0 +1,97 @@
+---
+# Config directory backup tasks
+
+- name: Set backup timestamp
+  ansible.builtin.set_fact:
+    backup_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+  run_once: true
+  when: backup_timestamp is not defined
+
+- name: Backup config directories
+  when: backup_target_stack is not defined or item.stack == backup_target_stack
+  loop: "{{ backup_services.configs }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.stack }})"
+  block:
+    - name: Check if config directory exists
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      register: config_dir_stat
+
+    - name: Backup config directory {{ item.name }}
+      when: config_dir_stat.stat.exists and config_dir_stat.stat.isdir
+      block:
+        - name: Create temporary archive directory
+          ansible.builtin.file:
+            path: "/tmp/backup_{{ item.name }}_{{ backup_timestamp }}"
+            state: directory
+            mode: '0700'
+
+        - name: Rsync config directory to temporary location
+          ansible.builtin.command: >
+            rsync -a --delete
+            {{ item.path }}/
+            /tmp/backup_{{ item.name }}_{{ backup_timestamp }}/
+          register: rsync_result
+          changed_when: rsync_result.rc == 0
+
+        - name: Create compressed archive
+          when: rsync_result.rc == 0
+          ansible.builtin.command: >
+            tar -czf {{ backup_base_dir }}/{{ item.stack }}/configs/{{ item.name }}_{{ backup_timestamp }}.tar.gz
+            -C /tmp/backup_{{ item.name }}_{{ backup_timestamp }} .
+          register: tar_result
+          changed_when: tar_result.rc == 0
+
+        - name: Clean up temporary directory
+          ansible.builtin.file:
+            path: "/tmp/backup_{{ item.name }}_{{ backup_timestamp }}"
+            state: absent
+
+        - name: Verify backup archive exists
+          when: tar_result.rc == 0
+          ansible.builtin.stat:
+            path: "{{ backup_base_dir }}/{{ item.stack }}/configs/{{ item.name }}_{{ backup_timestamp }}.tar.gz"
+          register: backup_archive_stat
+
+        - name: Set backup permissions
+          when: backup_archive_stat.stat.exists
+          ansible.builtin.file:
+            path: "{{ backup_base_dir }}/{{ item.stack }}/configs/{{ item.name }}_{{ backup_timestamp }}.tar.gz"
+            mode: '0600'
+            owner: root
+            group: root
+
+        - name: Verify archive integrity
+          when: backup_archive_stat.stat.exists
+          ansible.builtin.command: >
+            tar -tzf {{ backup_base_dir }}/{{ item.stack }}/configs/{{ item.name }}_{{ backup_timestamp }}.tar.gz
+          register: tar_verify
+          changed_when: false
+          failed_when: tar_verify.rc != 0
+
+        - name: Log successful backup
+          when: backup_archive_stat.stat.exists and tar_verify.rc == 0
+          ansible.builtin.debug:
+            msg: "Successfully backed up {{ item.name }} configs ({{ backup_archive_stat.stat.size | human_readable }})"
+
+        - name: Send Gotify notification on failure
+          when: >
+            backup_gotify_enabled and
+            (rsync_result.rc != 0 or tar_result.rc != 0 or not backup_archive_stat.stat.exists or tar_verify.rc != 0)
+          ansible.builtin.uri:
+            url: "{{ backup_gotify_url }}/message"
+            method: POST
+            headers:
+              X-Gotify-Key: "{{ backup_gotify_token }}"
+            body_format: json
+            body:
+              title: "Backup Failed: {{ item.name }} configs"
+              message: "Config backup failed for {{ item.name }} on {{ inventory_hostname }}"
+              priority: 8
+          failed_when: false
+
+    - name: Skip backup if config directory not found
+      when: not config_dir_stat.stat.exists or not config_dir_stat.stat.isdir
+      ansible.builtin.debug:
+        msg: "Skipping {{ item.name }} backup - config directory not found"

@@ -25,3 +25,36 @@ subdomain_final: "{{ subdomain | default(default_subdomain) }}"
 domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}"
 
 netbird_setup_key: "{{ vault_netbird_setup_key }}"
+
+# Backup configuration
+ansible_project_dir: "/root/ansible"
+
+# Backup settings
+backup_base_dir: "/backup"
+backup_retention_local: 14
+backup_retention_remote: 90
+backup_compression_level: 6
+
+# S3 backup configuration (credentials in vault.yml)
+backup_s3_enabled: true
+backup_s3_remote_name: "s3backup"
+backup_s3_bucket: "quadraplex-backups"
+backup_s3_path_prefix: "{{ inventory_hostname }}"
+backup_s3_provider: "Other"
+backup_s3_region: "us-east-1"
+backup_s3_storage_class: "STANDARD"
+backup_s3_encryption: "AES256"
+backup_s3_access_key: "{{ vault_backup_s3_access_key }}"
+backup_s3_secret_key: "{{ vault_backup_s3_secret_key }}"
+backup_s3_endpoint: "{{ vault_backup_s3_endpoint }}"
+
+# Backup notification settings (optional Gotify integration)
+backup_gotify_enabled: false
+backup_gotify_url: "http://localhost:8080"
+backup_gotify_token: "{{ vault_backup_gotify_token | default('') }}"
+
+# PostgreSQL database passwords (for backup)
+backup_immich_db_password: "{{ vault_immich_db_password | default('') }}"
+backup_n8n_db_password: "{{ vault_n8n_db_password | default('') }}"
+backup_nextcloud_db_password: "{{ vault_nextcloud_db_password | default('') }}"
+backup_boards_db_password: "{{ vault_boards_db_password | default('') }}"

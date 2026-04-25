@@ -1,0 +1,52 @@
+---
+# Backup playbook for Quadraplex-T-3000 infrastructure
+# Supports local backups to /backup and remote sync to S3-compatible storage
+
+- name: Backup Infrastructure
+  hosts: all
+  become: true
+  vars:
+    backup_action: "{{ backup_action | default('all') }}"
+    backup_target_stack: "{{ backup_stack | default(omit) }}"
+
+  tasks:
+    - name: Display backup configuration
+      ansible.builtin.debug:
+        msg:
+          - "Backup action: {{ backup_action }}"
+          - "Target stack: {{ backup_target_stack | default('all stacks') }}"
+          - "Local retention: {{ backup_retention_local }} days"
+          - "Remote retention: {{ backup_retention_remote }} days"
+          - "S3 enabled: {{ backup_s3_enabled }}"
+
+    - name: Setup backup infrastructure
+      when: backup_action == 'setup' or backup_action == 'timers'
+      ansible.builtin.include_role:
+        name: backup
+        tasks_from: main.yml
+      tags:
+        - backup-setup
+
+    - name: Run backup operations
+      when: backup_action != 'setup' and backup_action != 'timers'
+      ansible.builtin.include_role:
+        name: backup
+        tasks_from: main.yml
+      tags:
+        - backup
+
+    - name: Summary
+      when: backup_action != 'setup' and backup_action != 'timers'
+      block:
+        - name: Get backup directory size
+          ansible.builtin.command: du -sh {{ backup_base_dir }}
+          register: backup_size
+          changed_when: false
+
+        - name: Display backup summary
+          ansible.builtin.debug:
+            msg:
+              - "Backup completed successfully"
+              - "Total backup size: {{ backup_size.stdout.split()[0] }}"
+              - "Location: {{ backup_base_dir }}"
+              - "Next S3 sync: systemctl status backup-s3-sync.timer"

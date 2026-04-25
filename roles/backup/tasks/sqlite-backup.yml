@@ -1,0 +1,95 @@
+---
+# SQLite backup tasks
+
+- name: Set backup timestamp
+  ansible.builtin.set_fact:
+    backup_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+  run_once: true
+  when: backup_timestamp is not defined
+
+- name: Backup SQLite databases
+  when: backup_target_stack is not defined or item.stack == backup_target_stack
+  loop: "{{ backup_services.sqlite }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.stack }})"
+  block:
+    - name: Check if SQLite database file exists
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      register: sqlite_file_stat
+
+    - name: Check if container is running
+      when: sqlite_file_stat.stat.exists
+      ansible.builtin.command: >
+        docker ps --filter "name={{ item.container }}" --filter "status=running" --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Backup SQLite database {{ item.name }}
+      when: sqlite_file_stat.stat.exists and container_check.stdout != ""
+      block:
+        - name: Backup using SQLite .backup command
+          ansible.builtin.command: >
+            sqlite3 {{ item.path }} ".backup '{{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db'"
+          register: sqlite_backup_result
+          changed_when: sqlite_backup_result.rc == 0
+          failed_when: false
+
+        - name: Fallback to file copy if .backup fails
+          when: sqlite_backup_result.rc != 0
+          ansible.builtin.copy:
+            src: "{{ item.path }}"
+            dest: "{{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db"
+            remote_src: true
+            mode: '0600'
+            owner: root
+            group: root
+          register: sqlite_copy_result
+
+        - name: Compress SQLite backup
+          when: sqlite_backup_result.rc == 0 or sqlite_copy_result is changed
+          ansible.builtin.command: >
+            gzip -{{ backup_compression_level }} {{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db
+          register: compress_result
+          changed_when: compress_result.rc == 0
+
+        - name: Verify compressed backup exists
+          when: compress_result.rc == 0
+          ansible.builtin.stat:
+            path: "{{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db.gz"
+          register: compressed_backup_stat
+
+        - name: Verify backup integrity
+          when: compressed_backup_stat.stat.exists
+          ansible.builtin.command: >
+            sh -c "gunzip -c {{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db.gz | sqlite3 /dev/stdin 'PRAGMA integrity_check;'"
+          register: integrity_check
+          changed_when: false
+          failed_when: integrity_check.stdout != "ok"
+
+        - name: Log successful backup
+          when: compressed_backup_stat.stat.exists and integrity_check.stdout == "ok"
+          ansible.builtin.debug:
+            msg: "Successfully backed up {{ item.name }} database ({{ compressed_backup_stat.stat.size | human_readable }})"
+
+        - name: Send Gotify notification on failure
+          when: >
+            backup_gotify_enabled and
+            (not compressed_backup_stat.stat.exists or integrity_check.stdout != "ok")
+          ansible.builtin.uri:
+            url: "{{ backup_gotify_url }}/message"
+            method: POST
+            headers:
+              X-Gotify-Key: "{{ backup_gotify_token }}"
+            body_format: json
+            body:
+              title: "Backup Failed: {{ item.name }}"
+              message: "SQLite backup failed for {{ item.name }} on {{ inventory_hostname }}"
+              priority: 8
+          failed_when: false
+
+    - name: Skip backup if database not found or container not running
+      when: not sqlite_file_stat.stat.exists or container_check.stdout == ""
+      ansible.builtin.debug:
+        msg: "Skipping {{ item.name }} backup - database not found or container not running"

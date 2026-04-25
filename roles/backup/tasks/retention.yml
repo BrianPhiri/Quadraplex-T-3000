@@ -1,0 +1,75 @@
+---
+# Backup retention management tasks
+
+- name: Clean up old local backups (retention policy)
+  block:
+    - name: Find old database backups to remove
+      ansible.builtin.find:
+        paths:
+          - "{{ backup_base_dir }}/proxy/databases"
+          - "{{ backup_base_dir }}/dns/databases"
+          - "{{ backup_base_dir }}/media/databases"
+          - "{{ backup_base_dir }}/utility/databases"
+        age: "{{ backup_retention_local }}d"
+        recurse: false
+      register: old_database_backups
+
+    - name: Find old config backups to remove
+      ansible.builtin.find:
+        paths:
+          - "{{ backup_base_dir }}/proxy/configs"
+          - "{{ backup_base_dir }}/dns/configs"
+          - "{{ backup_base_dir }}/media/configs"
+          - "{{ backup_base_dir }}/utility/configs"
+        age: "{{ backup_retention_local }}d"
+        recurse: false
+      register: old_config_backups
+
+    - name: Find old data backups to remove
+      ansible.builtin.find:
+        paths:
+          - "{{ backup_base_dir }}/proxy/data"
+          - "{{ backup_base_dir }}/dns/data"
+          - "{{ backup_base_dir }}/media/data"
+          - "{{ backup_base_dir }}/utility/data"
+        age: "{{ backup_retention_local }}d"
+        recurse: false
+      register: old_data_backups
+
+    - name: Combine all old backups
+      ansible.builtin.set_fact:
+        all_old_backups: "{{ old_database_backups.files + old_config_backups.files + old_data_backups.files }}"
+
+    - name: Remove old backups
+      when: all_old_backups | length > 0
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ all_old_backups }}"
+      loop_control:
+        label: "{{ item.path }}"
+      register: cleanup_result
+
+    - name: Calculate space freed
+      when: cleanup_result is changed
+      ansible.builtin.set_fact:
+        space_freed: "{{ all_old_backups | map(attribute='size') | sum }}"
+
+    - name: Log cleanup results
+      when: cleanup_result is changed
+      ansible.builtin.debug:
+        msg: "Removed {{ all_old_backups | length }} old backup(s), freed {{ space_freed | human_readable }}"
+
+    - name: Log if no old backups found
+      when: all_old_backups | length == 0
+      ansible.builtin.debug:
+        msg: "No backups older than {{ backup_retention_local }} days found"
+
+- name: Get backup directory statistics
+  ansible.builtin.command: du -sh {{ backup_base_dir }}
+  register: backup_size
+  changed_when: false
+
+- name: Log current backup directory size
+  ansible.builtin.debug:
+    msg: "Current backup directory size: {{ backup_size.stdout.split()[0] }}"

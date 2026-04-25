@@ -1,0 +1,12 @@
+[Unit]
+Description={{ timer_description }}
+Requires={{ timer_name }}.service
+
+[Timer]
+Unit={{ timer_name }}.service
+OnCalendar={{ timer_on_calendar }}
+AccuracySec={{ timer_accuracy }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

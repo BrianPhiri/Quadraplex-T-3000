@@ -2,6 +2,7 @@ include makefiles/docker.mk
 include makefiles/user.mk
 include makefiles/deploy.mk
 include makefiles/base-stack.mk
+include makefiles/backup.mk
 #include makefiles/clamav.mk
 
 # Makefile - Docker Installation Commands
