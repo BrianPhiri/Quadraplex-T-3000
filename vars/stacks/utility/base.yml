@@ -179,14 +179,14 @@ utility_services:
       domain: "{{ utility_stack.stack_domain }}"
   n8n:
     enabled: false
-    encryption_key: "{{ vault_n8n_encryption_key | default('changeme') }}"
+    encryption_key: "{{ vault_n8n_encryption_key | mandatory('vault_n8n_encryption_key must be set in vault.yml before enabling n8n') }}"
     version: "{{ utility_stack.versions.n8n.app | default('latest') }}"
     db_version: "{{ utility_stack.versions.n8n.postgres | default('latest') }}"
     db:
       user: "carlos"
-      password: "{{ vault_n8n_db_password | default('changeme') }}"
+      password: "{{ vault_n8n_db_password | mandatory('vault_n8n_db_password must be set in vault.yml before enabling n8n') }}"
       user_non_root: "barb"
-      password_non_root: "{{ vault_n8n_db_password_non_root | default('changeme') }}"
+      password_non_root: "{{ vault_n8n_db_password_non_root | mandatory('vault_n8n_db_password_non_root must be set in vault.yml before enabling n8n') }}"
       name: "my_n8n"
     networks:
       - traefik_net
@@ -197,7 +197,7 @@ utility_services:
   grist:
     enabled: false
     version: "{{ utility_stack.versions.gotify | default('latest') }}"
-    secret: "{{ vault_grist_secret | default('changeme') }}"
+    secret: "{{ vault_grist_secret | mandatory('vault_grist_secret must be set in vault.yml before enabling grist') }}"
     email: ""
     dnss:
       - "{{ custom_dns | default('1.1.1.1') }}"

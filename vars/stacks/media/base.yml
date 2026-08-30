@@ -231,7 +231,7 @@ media_services:
     db:
       name: "immich"
       user: "benjamin"
-      password: "{{ vault_immich_db_password | default('changeme') }}"
+      password: "{{ vault_immich_db_password | mandatory('vault_immich_db_password must be set in vault.yml before enabling immich') }}"
     dnss:
       - "{{ custom_dns | default('1.1.1.1') }}"
     networks:
