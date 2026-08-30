@@ -18,9 +18,14 @@ backup_s3_remote_name: "s3backup"
 backup_s3_bucket: "quadraplex-backups"
 backup_s3_path_prefix: "{{ inventory_hostname }}"
 
-# Rclone binary path
-backup_rclone_bin: "/usr/bin/rclone"
+# Rclone runs via the official Docker image rather than a host-installed binary,
+# consistent with how every other piece of software in this repo runs.
 backup_rclone_config_dir: "/root/.config/rclone"
+backup_rclone_bin: >-
+  docker run --rm
+  -v {{ backup_rclone_config_dir }}:/config/rclone
+  -v {{ backup_base_dir }}:{{ backup_base_dir }}
+  rclone/rclone:latest
 
 # Compression settings
 backup_compression_level: 6  # gzip compression level (1-9)

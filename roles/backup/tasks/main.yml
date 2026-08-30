@@ -14,24 +14,14 @@
     - backup
     - backup-setup
 
-- name: Install rclone
+- name: Pull rclone Docker image
   when: backup_s3_enabled
+  ansible.builtin.command: docker pull rclone/rclone:latest
+  register: rclone_pull
+  changed_when: "'Downloaded newer image' in rclone_pull.stdout"
   tags:
     - backup
     - backup-setup
-  block:
-    - name: Check if rclone is installed
-      ansible.builtin.command: which rclone
-      register: rclone_check
-      changed_when: false
-      failed_when: false
-
-    - name: Install rclone
-      when: rclone_check.rc != 0
-      ansible.builtin.shell: |
-        curl https://rclone.org/install.sh | bash
-      args:
-        creates: /usr/bin/rclone
 
 - name: Create backup directories
   ansible.builtin.file:
