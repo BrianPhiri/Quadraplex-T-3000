@@ -8,6 +8,7 @@ jellyfin:
     - TZ={{ stack_config.timezone }}
   volumes:
     - {{ stack_config.config_path }}/jellyfin:/config
+    - {{ stack_config.data_path }}/jellyfin:/tmp
     - {{ stack_config.media_path }}/movies:/data/movies:ro
     - {{ stack_config.media_path }}/tv:/data/tvshows:ro
     - {{ stack_config.media_path }}/music:/data/music:ro
