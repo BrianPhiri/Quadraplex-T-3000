@@ -17,7 +17,7 @@ RESTORE_PLAYBOOK := playbooks/restore.yml
 # Backup Commands
 #
 
-backup-setup: ## Setup backup infrastructure (install rclone, create directories, deploy systemd timers)
+backup-setup: ## Setup backup infrastructure (pull rclone image, create directories, deploy systemd timers)
 	@echo "Setting up backup infrastructure on $(TARGET)..."
 	ansible-playbook $(BACKUP_PLAYBOOK) $(ANSIBLE_OPTS) \
 		--limit $(TARGET) \
@@ -144,17 +144,21 @@ backup-verify: ## Verify backup integrity
 # S3 Management Commands
 #
 
+# rclone runs via the official Docker image on the target host, not a host-installed
+# binary - matches roles/backup/defaults/main.yml's backup_rclone_bin.
+RCLONE_DOCKER := docker run --rm -v /root/.config/rclone:/config/rclone -v /backup:/backup rclone/rclone:latest
+
 s3-test: ## Test S3 connection
 	@echo "Testing S3 connection from $(TARGET)..."
-	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "rclone lsd s3backup: 2>&1"
+	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "$(RCLONE_DOCKER) lsd s3backup: 2>&1"
 
 s3-list: ## List S3 backup contents
 	@echo "Listing S3 backups for $(TARGET):"
-	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "rclone ls s3backup:$(shell ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a 'hostname' --one-line | awk '{print \$$NF}') 2>&1 | tail -50"
+	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "$(RCLONE_DOCKER) ls s3backup:$(shell ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a 'hostname' --one-line | awk '{print \$$NF}') 2>&1 | tail -50"
 
 s3-size: ## Show S3 backup size
 	@echo "S3 backup size for $(TARGET):"
-	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "rclone size s3backup: 2>&1"
+	ansible $(TARGET) $(ANSIBLE_OPTS) -m shell -a "$(RCLONE_DOCKER) size s3backup: 2>&1"
 
 #
 # Help
