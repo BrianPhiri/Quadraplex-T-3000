@@ -54,7 +54,9 @@
     - lib
     - plugins
     - provisioning
-  when: services.grafana.enabled | default(false)
+    - provisioning/datasources
+    - provisioning/dashboards
+  when: "'grafana' in services"
 
 - name: Fix permissions for existing Grafana data directory
   file:
@@ -62,7 +64,7 @@
     owner: "{{ stack_user_id }}"
     group: "{{ stack_group_id }}"
     recurse: yes
-  when: services.grafana.enabled | default(false)
+  when: "'grafana' in services"
   ignore_errors: yes
 
 # Permissions already set per-service above - recursive operation removed for performance

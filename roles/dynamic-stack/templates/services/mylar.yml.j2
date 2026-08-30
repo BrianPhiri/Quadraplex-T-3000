@@ -1,6 +1,6 @@
-mylar3:
+mylar:
   image: lscr.io/linuxserver/mylar3:{{ services.mylar.version }}
-  container_name: mylar3
+  container_name: mylar
   restart: unless-stopped
   environment:
     - PUID={{ stack_config.user_id }}

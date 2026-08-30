@@ -15,3 +15,9 @@ node_exporter:
   ports:
     - "{{ services.node_exporter.port }}:9100"
 {% endif %}
+{% if services.node_exporter.networks is defined %}
+  networks:
+{% for network in services.node_exporter.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}

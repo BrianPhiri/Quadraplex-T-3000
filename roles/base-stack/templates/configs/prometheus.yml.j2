@@ -6,7 +6,7 @@ global:
     environment: '{{ env | default("production") }}'
 
 # Alertmanager configuration
-{% if services.alertmanager is defined and services.alertmanager.enabled | default(false) %}
+{% if 'alertmanager' in services %}
 alerting:
   alertmanagers:
     - static_configs:
@@ -25,16 +25,16 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-{% if services.node_exporter is defined and services.node_exporter.enabled | default(false) %}
+{% if 'node_exporter' in services %}
   # Node Exporter
-  - job_name: 'node'
+  - job_name: 'node_exporter'
     static_configs:
       - targets: ['node_exporter:9100']
         labels:
           instance: '{{ inventory_hostname }}'
 {% endif %}
 
-{% if services.cadvisor is defined and services.cadvisor.enabled | default(false) %}
+{% if 'cadvisor' in services %}
   # cAdvisor (Docker container metrics)
   - job_name: 'cadvisor'
     static_configs:
@@ -43,9 +43,18 @@ scrape_configs:
           instance: '{{ inventory_hostname }}'
 {% endif %}
 
-{% if services.grafana is defined and services.grafana.enabled | default(false) %}
+{% if 'grafana' in services %}
   # Grafana
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+{% endif %}
+
+{% if 'loki' in services %}
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          instance: '{{ inventory_hostname }}'
 {% endif %}

@@ -17,3 +17,9 @@ cadvisor:
     - "{{ services.cadvisor.port }}:8080"
 {% endif %}
   restart: unless-stopped
+{% if services.cadvisor.networks is defined %}
+  networks:
+{% for network in services.cadvisor.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
