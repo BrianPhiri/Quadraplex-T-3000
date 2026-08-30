@@ -14,7 +14,7 @@ cadvisor:
     - /dev/disk/:/dev/disk:ro
 {% if services.cadvisor.port is defined %}
   ports:
-    - "{{ services.cadvisor.port }}:8080"
+    - "127.0.0.1:{{ services.cadvisor.port }}:8080"
 {% endif %}
   restart: unless-stopped
 {% if services.cadvisor.networks is defined %}

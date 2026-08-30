@@ -13,7 +13,7 @@ node_exporter:
     - "/:/host:ro,rslave"
 {% if services.node_exporter.port is defined %}
   ports:
-    - "{{ services.node_exporter.port }}:9100"
+    - "127.0.0.1:{{ services.node_exporter.port }}:9100"
 {% endif %}
 {% if services.node_exporter.networks is defined %}
   networks:

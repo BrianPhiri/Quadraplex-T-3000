@@ -16,8 +16,10 @@ prometheus:
     - "--web.console.libraries=/usr/share/prometheus/console_libraries"
     - "--web.console.templates=/usr/share/prometheus/consoles"
     - "--web.enable-lifecycle"
+{% if services.prometheus.port is defined %}
   ports:
-    - "{{ services.prometheus.port }}:9090"
+    - "127.0.0.1:{{ services.prometheus.port }}:9090"
+{% endif %}
 {% if services.prometheus.traefik.enabled | default(false) %}
   labels:
     - traefik.enable=true
