@@ -69,6 +69,7 @@
     mode: '0600'
     owner: root
     group: root
+  no_log: true
   tags:
     - backup
     - backup-setup
