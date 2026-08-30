@@ -96,7 +96,7 @@ utility_services:
     hostname: media
     setup_key: "{{ netbird_setup_key | default('') }}"
   pairdrop:
-    enabled: true
+    enabled: false
     version: "{{ utility_stack.versions.pairdrop | default('latest') }}"
     ws_fallback: "false"
     rate_limit: "false"

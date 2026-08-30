@@ -31,7 +31,7 @@ RESET := \033[0m
 AVAILABLE_STACKS := $(patsubst $(STACKS_DIR)/%/,%,$(sort $(dir $(wildcard $(STACKS_DIR)/*/))))
 
 # Build ansible-playbook command
-ANSIBLE_CMD := ansible-playbook -i $(INVENTORY)
+ANSIBLE_CMD := LC_ALL=C.UTF-8 ansible-playbook -i $(INVENTORY)
 
 # Add optional flags
 ifdef TAGS
