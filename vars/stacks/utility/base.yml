@@ -40,6 +40,8 @@ utility_stack:
     glance: "latest"
     cadvisor: "latest"
     node_exporter: "latest"
+    loki: "3"
+    promtail: "3"
     netbird: "latest"
     homeassistant: "stable"
     pairdrop: "latest"
@@ -76,6 +78,16 @@ utility_services:
     enabled: true
     port: 9090
     version: "{{ utility_stack.versions.prometheus | default('latest') }}"
+    networks:
+      - traefik_net
+  loki:
+    enabled: true
+    version: "{{ utility_stack.versions.loki | default('3') }}"
+    networks:
+      - traefik_net
+  promtail:
+    enabled: true
+    version: "{{ utility_stack.versions.promtail | default('3') }}"
     networks:
       - traefik_net
   netbird:

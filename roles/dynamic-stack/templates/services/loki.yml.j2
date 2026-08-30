@@ -1,0 +1,19 @@
+loki:
+  image: grafana/loki:{{ services.loki.version }}
+  container_name: loki
+  restart: unless-stopped
+  user: "{{ stack_config.user_id }}:{{ stack_config.group_id }}"
+  command: -config.file=/etc/loki/config.yml
+  volumes:
+    - {{ stack_config.config_path }}/loki/config.yml:/etc/loki/config.yml:ro
+    - {{ stack_config.data_path }}/loki:/loki
+{% if services.loki.port is defined %}
+  ports:
+    - "{{ services.loki.port }}:3100"
+{% endif %}
+{% if services.loki.networks is defined %}
+  networks:
+{% for network in services.loki.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
