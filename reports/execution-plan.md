@@ -1,5 +1,36 @@
 # Execution Plan — Quadraplex-T-3000
 
+## 📍 Session handoff (read this first)
+
+**Completed this session:** Batch 1 (git hygiene) and Batch 2 (trivial/non-breaking fixes) are
+fully done — 18 commits on branch **`chore/batch-1-2-fixes`** (not merged to `main` yet, your
+call on when). Working tree is clean, nothing uncommitted.
+
+**Still pending from you before anything else:**
+1. **`~/.ssh/id_ed25519` permissions** — still world-readable/root-owned on this control machine.
+   Blocked on interactive sudo; run yourself:
+   `! sudo chown brian:brian ~/.ssh/id_ed25519* && chmod 600 ~/.ssh/id_ed25519*`
+2. **Real Backblaze B2 credentials** — `inventory/group_vars/all/vault.yml` has placeholders
+   (`REPLACE_ME_B2_KEY_ID` / `REPLACE_ME_B2_APPLICATION_KEY` / a guessed endpoint). `make s3-test`
+   confirms the whole pipeline works end-to-end; it just needs your real key ID/app key/endpoint.
+3. **AdGuard's own upstream DNS servers are broken** (its admin-panel config, not this repo's) —
+   log in and fix them; the server currently falls back to `1.1.1.1` for its own system DNS as a
+   workaround, which works but bypasses AdGuard's ad-blocking for the host's own traffic.
+4. **Verify NetBird still connects** next time the utility stack is deployed —
+   `vault_netbird_setup_key` now resolves to its real value for the first time (a pre-existing
+   `group_vars` loading bug meant it was silently empty before).
+5. Merge or open a PR for `chore/batch-1-2-fixes` whenever you're satisfied with it.
+
+**Not started yet:** Batches 3 through 6 below — nothing in them has been touched. Batch 3
+(qui/profilarr auth, SSH password auth) is the natural next step whenever you want to continue.
+
+For the full story of what happened during Batch 2 (a chain of unrelated pre-existing bugs it
+uncovered — disk-filling Jellyfin cache, broken server DNS, a clock 2.5 months off, the
+`group_vars` bug, a silently-failing rclone install), see "Unplanned discoveries" under Batch 2
+below.
+
+---
+
 _Generated: 2026-08-30 — consolidates all seven prior reports (`diff-review.md`,
 `architecture-review.md`, `security-audit.md`, `security-remediation-plan.md`,
 `internal-server-audit.md`, `external-recon.md`, `nikto-scan.md`) into one ordered, batched
@@ -167,7 +198,9 @@ For completeness/closure — these were investigated and correctly require nothi
 - **Finding #15** (arr-stack/Jellyfin/qBittorrent no `user:`) — PUID/PGID pattern is correct for these images.
 - **Finding #17** (`PGPASSWORD` via `environment:`) — already the correct pattern.
 - **Finding #18** (shell interpolation from a static hardcoded dict) — no externally-influenced input, theoretical only.
-- **Finding #19** (`curl \| bash` rclone install) — acceptable for a homelab initial-setup task; optional distro-package swap if you want it, not required.
+- **Finding #19** (`curl \| bash` rclone install) — ended up fixed anyway, not left as-is: it was
+  silently failing (masked by the DNS/clock bugs discovered in Batch 2), so it was replaced with
+  running rclone via its official Docker image instead of a host-installed binary (`10a1cd6`).
 - **Finding #21** (empty `production.yml` overlays) — already deleted in Batch 0.
 - **Finding #22** (0-byte `.env.j2` stubs) — confirmed benign, covered defensively by 2.6's `no_log` addition.
 
