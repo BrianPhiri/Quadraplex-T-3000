@@ -1,7 +1,7 @@
 ---
 api:
   dashboard: {{ proxy_services.traefik.dashboard.enabled | default('true') }}
-  debug: {{ proxy_services.traefik.debug | default('true') }}
+  debug: {{ proxy_services.traefik.debug | default('false') }}
 
 entryPoints:
   http:

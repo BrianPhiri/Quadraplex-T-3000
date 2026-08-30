@@ -31,7 +31,7 @@ proxy_services:
     acme:
       email: "{{ vault_traefik_acme_email }}"
       server: "https://acme-v02.api.letsencrypt.org/directory"
-    debug: true
+    debug: false
     cloudflare:
       token: "{{ vault_cloudflare_token }}"
     cert_resolver: "cloudflare"
