@@ -12,6 +12,67 @@ The backup system provides:
 - **Config snapshots** with compression
 - **One-command restore** with safety checks and dry-run mode
 
+## Quickstart
+
+Get the backup system running in about 5 minutes.
+
+**Prerequisites**: Ansible-deployed Quadraplex-T-3000 infrastructure, an S3-compatible storage account
+(Backblaze B2, Wasabi, AWS S3, etc.), and root/sudo access to the target host.
+
+1. **Configure S3 credentials** (2 min)
+
+   ```bash
+   ansible-vault edit inventory/group_vars/vault.yml
+   ```
+
+   Add:
+   ```yaml
+   vault_backup_s3_access_key: "YOUR_ACCESS_KEY"
+   vault_backup_s3_secret_key: "YOUR_SECRET_KEY"
+   vault_backup_s3_endpoint: "https://s3.wasabisys.com"  # your S3 endpoint
+   ```
+
+2. **Deploy backup infrastructure** (1 min) — installs rclone, creates directories, sets up systemd timers
+
+   ```bash
+   make backup-setup TARGET=your-host-name
+   ```
+
+3. **Test the S3 connection** (30 sec)
+
+   ```bash
+   make s3-test TARGET=your-host-name
+   ```
+
+4. **Run the initial backup** (1 min)
+
+   ```bash
+   make backup TARGET=your-host-name
+   make backup-s3 TARGET=your-host-name
+   ```
+
+5. **Verify everything works** (30 sec)
+
+   ```bash
+   make backup-status TARGET=your-host-name
+   make s3-list TARGET=your-host-name
+   make backup-timers TARGET=your-host-name
+   ```
+
+Once set up, backups run automatically: PostgreSQL every hour, a full daily backup (SQLite, configs,
+Prometheus data) at 2 AM, and an S3 sync every 6 hours. Old backups are cleaned up automatically
+(14 days locally, 90 days on S3).
+
+**Recommended next step** — test a restore before you need one for real:
+
+```bash
+make restore-dry-run SERVICE=grafana STACK=utility LATEST=true TARGET=your-host
+make restore SERVICE=grafana STACK=utility LATEST=true TARGET=your-host   # if the dry-run looks good
+```
+
+The rest of this document is the fuller reference: architecture, full command list, restore
+procedures, troubleshooting, and configuration details.
+
 ## Architecture
 
 ```
@@ -75,22 +136,20 @@ The backup system provides:
 
 **Total estimated backup size:** 1-10GB depending on Prometheus retention
 
-## Initial Setup
+## Configuration
 
-### 1. Configure S3 Credentials
-
-Edit and encrypt your vault file:
+### S3 Credentials (required)
 
 ```bash
-# Edit vault
 ansible-vault edit inventory/group_vars/vault.yml
+```
 
-# Add these variables:
+```yaml
 vault_backup_s3_access_key: "your_access_key_here"
 vault_backup_s3_secret_key: "your_secret_key_here"
 vault_backup_s3_endpoint: "https://s3.wasabisys.com"  # or your S3 endpoint
 
-# Optional: Add database passwords if not already present
+# Optional: database passwords if not already present
 vault_immich_db_password: "your_immich_password"
 vault_n8n_db_password: "your_n8n_password"
 vault_nextcloud_db_password: "your_nextcloud_password"
@@ -100,9 +159,12 @@ vault_boards_db_password: "your_boards_password"
 vault_backup_gotify_token: "your_gotify_token"
 ```
 
-### 2. Customize Backup Settings (Optional)
+**Where to get S3 credentials:** [Backblaze B2](https://www.backblaze.com/b2/cloud-storage.html)
+(10GB free), [Wasabi](https://wasabi.com/) (1TB free trial), or [AWS S3](https://aws.amazon.com/s3/).
 
-Edit `inventory/group_vars/all.yml` to customize:
+### Backup Settings (optional)
+
+Edit `inventory/group_vars/all.yml`:
 
 ```yaml
 # Backup retention
@@ -116,39 +178,6 @@ backup_s3_region: "us-east-1"
 # Enable Gotify notifications on failure
 backup_gotify_enabled: true
 backup_gotify_url: "http://localhost:8080"
-```
-
-### 3. Deploy Backup Infrastructure
-
-```bash
-# Install rclone, create directories, deploy systemd timers
-make backup-setup TARGET=your-host
-
-# Verify setup
-make backup-status TARGET=your-host
-make backup-timers TARGET=your-host
-```
-
-### 4. Test S3 Connection
-
-```bash
-# Test S3 connectivity
-make s3-test TARGET=your-host
-
-# Expected output: List of buckets or successful connection message
-```
-
-### 5. Run Initial Backup
-
-```bash
-# Run complete initial backup
-make backup TARGET=your-host
-
-# Check results
-make backup-status TARGET=your-host
-
-# Sync to S3
-make backup-s3 TARGET=your-host
 ```
 
 ## Usage
@@ -179,7 +208,7 @@ make backup-retention TARGET=your-host
 
 ### Automated Backups
 
-Systemd timers are automatically configured:
+Systemd timers are configured automatically by `make backup-setup`:
 
 | Timer | Schedule | What it backs up |
 |-------|----------|------------------|
@@ -187,114 +216,81 @@ Systemd timers are automatically configured:
 | `backup-daily.timer` | Daily at 2:00 AM | SQLite, configs, data, retention cleanup |
 | `backup-s3-sync.timer` | Every 6 hours | Sync local → S3 |
 
-Check timer status:
 ```bash
 make backup-timers TARGET=your-host
-
-# Or directly with systemctl:
+# or directly:
 ssh your-host systemctl list-timers 'backup-*'
 ```
 
 ### Monitoring Backups
 
 ```bash
-# Show backup summary and recent backups
-make backup-status TARGET=your-host
-
-# View systemd timer schedules
-make backup-timers TARGET=your-host
-
-# View backup logs
-make backup-logs TARGET=your-host
+make backup-status TARGET=your-host       # Summary and recent backups
+make backup-timers TARGET=your-host       # Systemd timer schedules
+make backup-logs TARGET=your-host         # Backup logs
 make backup-logs-postgres TARGET=your-host
 make backup-logs-daily TARGET=your-host
 make backup-logs-s3 TARGET=your-host
-
-# Verify backup integrity
-make backup-verify TARGET=your-host
+make backup-verify TARGET=your-host       # Verify backup integrity
 
 # S3 management
 make s3-list TARGET=your-host
 make s3-size TARGET=your-host
 ```
 
-### Restoring from Backup
+## Restoring from Backup
 
-#### List Available Backups
+### List Available Backups
 
 ```bash
-# List all backups for a stack
 make restore-list STACK=utility TARGET=your-host
-
-# Or manually:
+# or manually:
 ssh your-host find /backup/utility/databases -type f -ls
 ```
 
-#### Restore Latest Backup
+### Restore Latest Backup
 
 ```bash
 # Dry-run first (preview what will happen)
 make restore-dry-run SERVICE=grafana STACK=utility LATEST=true TARGET=your-host
 
-# If dry-run looks good, restore for real
+# If it looks good, restore for real
 make restore SERVICE=grafana STACK=utility LATEST=true TARGET=your-host
 ```
 
-#### Restore Specific Date
+### Restore Specific Date
 
 ```bash
-# Find backup date from restore-list, then restore
+# Find the backup date from restore-list, then:
 make restore SERVICE=grafana STACK=utility DATE=20260425T120000 TARGET=your-host
 ```
 
-#### Restore from S3 (Disaster Recovery)
+### Restore from S3 (Disaster Recovery)
 
 ```bash
-# Restore from remote S3 backup
 make restore-remote SERVICE=grafana STACK=utility DATE=20260425 TARGET=your-host
-
-# This will:
-# 1. Download backup from S3
-# 2. Restore to local system
-# 3. Restart service
+# Downloads the backup from S3, restores locally, and restarts the service.
 ```
 
-## Restore Examples
+### Restore Examples
 
-### Example 1: Restore Grafana Database
-
+**Restore Grafana database:**
 ```bash
-# 1. List available backups
 make restore-list STACK=utility TARGET=prod-01
-
-# 2. Dry-run to preview
 make restore-dry-run SERVICE=grafana STACK=utility LATEST=true TARGET=prod-01
-
-# 3. Confirm and restore
-make restore SERVICE=grafana STACK=utility LATEST=true TARGET=prod-01
-# Confirm when prompted: yes
-
-# 4. Verify
+make restore SERVICE=grafana STACK=utility LATEST=true TARGET=prod-01   # confirm: yes
 ssh prod-01 docker logs grafana
 ```
 
-### Example 2: Restore PostgreSQL Database (Immich)
-
+**Restore PostgreSQL database (Immich):**
 ```bash
-# Restore Immich database from specific date
 make restore SERVICE=immich STACK=media DATE=20260425T140000 TARGET=prod-01
-
-# Warning: This will DROP and recreate the database!
-# Confirm: yes
+# Warning: this drops and recreates the database. Confirm: yes
 ```
 
-### Example 3: Disaster Recovery from S3
-
+**Disaster recovery from S3:**
 ```bash
-# Server crashed, need to restore from S3
 make restore-remote SERVICE=n8n STACK=utility DATE=20260424 TARGET=new-server
-
-# This downloads from S3 and restores
 ```
 
 ## Backup Schedule Summary
@@ -312,14 +308,9 @@ make restore-remote SERVICE=n8n STACK=utility DATE=20260424 TARGET=new-server
 ### Backup Failed
 
 ```bash
-# Check logs
 make backup-logs TARGET=your-host
-
-# Check specific service logs
 make backup-logs-postgres TARGET=your-host
 make backup-logs-daily TARGET=your-host
-
-# Check disk space
 ssh your-host df -h /backup
 
 # Manual backup test
@@ -331,24 +322,15 @@ ansible-playbook playbooks/backup.yml --limit localhost --extra-vars "backup_act
 ### S3 Sync Failed
 
 ```bash
-# Test connection
 make s3-test TARGET=your-host
-
-# Check S3 credentials
 ssh your-host cat /root/.config/rclone/rclone.conf
-
-# Manual S3 test
 ssh your-host rclone lsd s3backup:
-
-# Check S3 logs
 make backup-logs-s3 TARGET=your-host
 ```
 
 ### Restore Failed
 
 ```bash
-# Common issues:
-
 # 1. Container not running
 ssh your-host docker ps --filter name=SERVICE_NAME
 
@@ -365,13 +347,8 @@ ssh your-host ls -la /backup/STACK/databases/
 ### Disk Space Issues
 
 ```bash
-# Check backup size
 make backup-status TARGET=your-host
-
-# Force retention cleanup
 make backup-retention TARGET=your-host
-
-# Find largest backups
 ssh your-host du -sh /backup/* | sort -h
 
 # Manual cleanup (if needed)
@@ -388,39 +365,55 @@ ssh your-host find /backup -name '*.dump' -mtime +7 -delete
 
 ## Performance Impact
 
-- **PostgreSQL backups**: Minimal impact (uses pg_dump, no locks)
-- **SQLite backups**: Brief lock during backup (< 1 second for most DBs)
-- **Config backups**: No service impact (rsync of config files)
-- **Prometheus backup**: Uses snapshot API (no service disruption)
-- **S3 sync**: Background process, bandwidth throttled to 4 transfers
+| Operation | Impact | Duration |
+|-----------|--------|----------|
+| PostgreSQL backup | Minimal (uses pg_dump, no locks) | 30-120s per DB |
+| SQLite backup | Brief lock (<1s for most DBs) | 5-30s per DB |
+| Config backup | None (rsync of config files) | 10-30s |
+| Prometheus backup | None (uses snapshot API) | 30-60s |
+| S3 sync | Background, throttled to 4 transfers | 1-10 min |
 
 ## Advanced Configuration
 
-### Backup Specific Service
+**Backup specific service**: edit `roles/backup/defaults/main.yml` to add/remove services from
+backup scope.
 
-Edit `roles/backup/defaults/main.yml` to add/remove services from backup scope.
+**Change backup schedule**: edit `roles/backup/tasks/systemd-timers.yml` and change
+`timer_on_calendar` values.
 
-### Change Backup Schedule
-
-Edit `roles/backup/tasks/systemd-timers.yml` and change `timer_on_calendar` values.
-
-### Custom S3 Provider
-
-For Backblaze B2, Wasabi, or other S3-compatible:
+**Custom S3 provider** (Backblaze B2, Wasabi, or other S3-compatible), in `all.yml`:
 
 ```yaml
-# In all.yml
 backup_s3_provider: "Wasabi"  # or "Backblaze", "Other"
 backup_s3_endpoint: "https://s3.wasabisys.com"
 backup_s3_region: "us-east-1"
 ```
 
-### Exclude Specific Services
+**Exclude specific services**:
 
 ```yaml
 # In playbook or command line
 --extra-vars "backup_action=postgres backup_target_stack=utility"
 ```
+
+## Known Limitations
+
+1. **Media files not backed up**: `/mnt/media` excluded due to size
+2. **Requires PostgreSQL passwords**: must be set in vault for PostgreSQL backups
+3. **S3 required for remote backup**: no alternative remote storage implemented
+4. **Manual Gotify setup**: notification setup is optional and manual
+5. **No backup encryption layer**: relies on S3 server-side encryption
+
+## Possible Future Enhancements
+
+- Grafana dashboard for backup metrics
+- Automated restore testing
+- Email notifications (in addition to Gotify)
+- Differential backups for large data
+- Backup encryption layer (in addition to S3)
+- Immich uploaded-photos backup
+- Multi-region S3 replication
+- Backup compression ratio metrics
 
 ## FAQ
 
@@ -428,24 +421,24 @@ backup_s3_region: "us-east-1"
 A: Plan for 5-10GB for local backups (14 days). S3 will grow to 20-60GB (90 days).
 
 **Q: Can I backup media files (/mnt/media)?**
-A: Not by default (too large). For media backup, use a separate rsync/rclone strategy or exclude media from your backup needs.
+A: Not by default (too large). Use a separate rsync/rclone strategy if you need this.
 
 **Q: What happens if I restore while the service is running?**
-A: PostgreSQL restores drop connections and recreate the database. SQLite restores stop the container first.
+A: PostgreSQL restores drop connections and recreate the database. SQLite restores stop the
+container first.
 
 **Q: Can I restore to a different server?**
-A: Yes! Use `restore-remote` to download from S3 and restore to any server.
+A: Yes — use `restore-remote` to download from S3 and restore to any server.
 
 **Q: How do I test restores?**
-A: Always use `make restore-dry-run` first to preview changes. Test restores regularly in a staging environment.
+A: Always use `make restore-dry-run` first to preview changes. Test restores regularly.
 
 **Q: What if rclone/S3 is down?**
-A: Local backups continue working. S3 sync will retry on next scheduled run (every 6 hours).
+A: Local backups continue working. S3 sync retries on the next scheduled run (every 6 hours).
 
-## Support Commands Reference
+## Command Reference
 
 ```bash
-# Quick reference
 make backup-help                          # Show detailed help
 
 # Setup
@@ -458,6 +451,8 @@ make backup TARGET=host STACK=media       # Stack-specific
 # Restore
 make restore SERVICE=x STACK=y DATE=z TARGET=host
 make restore-dry-run SERVICE=x STACK=y LATEST=true TARGET=host
+make restore-remote SERVICE=x STACK=y DATE=z TARGET=host
+make restore-list STACK=y TARGET=host
 
 # Monitor
 make backup-status TARGET=host            # Status & size
@@ -471,7 +466,9 @@ make s3-list TARGET=host                  # List backups
 make s3-size TARGET=host                  # Show size
 ```
 
-## Files Created by Backup System
+## Files Created by the Backup System (reference)
+
+On the target host:
 
 ```
 /backup/                          # Local backup root
@@ -479,43 +476,58 @@ make s3-size TARGET=host                  # Show size
   ├── dns/
   ├── media/
   │   ├── databases/
-  │   │   ├── immich_20260425T120000.dump
-  │   │   ├── sonarr_20260425T020000.db.gz
-  │   │   └── radarr_20260425T020000.db.gz
   │   ├── configs/
-  │   │   └── media_20260425T020000.tar.gz
   │   └── data/
   └── utility/
       ├── databases/
-      │   ├── n8n_20260425T150000.dump
-      │   ├── grafana_20260425T020000.db.gz
-      │   └── uptime_kuma_20260425T020000.db.gz
       ├── configs/
-      │   └── utility_20260425T020000.tar.gz
       └── data/
-          └── prometheus_20260425T020000.tar.gz
 
 /root/.config/rclone/rclone.conf  # S3 configuration
 /etc/systemd/system/
-  ├── backup-postgres-hourly.service
-  ├── backup-postgres-hourly.timer
-  ├── backup-daily.service
-  ├── backup-daily.timer
-  ├── backup-s3-sync.service
-  └── backup-s3-sync.timer
+  ├── backup-postgres-hourly.service / .timer
+  ├── backup-daily.service / .timer
+  └── backup-s3-sync.service / .timer
 ```
 
-## Next Steps
+In the repo, the feature lives in:
 
-1. ✅ Complete initial setup (`make backup-setup`)
-2. ✅ Configure S3 credentials in vault
-3. ✅ Run test backup (`make backup`)
-4. ✅ Verify S3 sync (`make s3-test && make backup-s3`)
-5. ✅ Monitor timers (`make backup-timers`)
-6. ✅ Test restore in dry-run mode
-7. ⏰ Schedule regular restore tests (monthly)
-8. 📊 Optional: Setup Gotify notifications
-9. 📊 Optional: Create Grafana dashboard for backup metrics
+```
+roles/backup/
+├── README.md                    # Role-specific documentation
+├── defaults/main.yml            # Default variables & service definitions
+├── handlers/main.yml            # Systemd handlers
+├── tasks/
+│   ├── main.yml                 # Main orchestration
+│   ├── postgres-backup.yml
+│   ├── sqlite-backup.yml
+│   ├── config-backup.yml
+│   ├── data-backup.yml
+│   ├── retention.yml
+│   ├── s3-sync.yml
+│   ├── restore.yml
+│   └── systemd-timers.yml
+└── templates/
+    ├── backup-systemd.service.j2
+    ├── backup-systemd.timer.j2
+    └── rclone.conf.j2
+
+playbooks/backup.yml             # Backup orchestration playbook
+playbooks/restore.yml            # Restore orchestration playbook
+makefiles/backup.mk              # `make backup-*` / `make restore-*` command interface
+```
+
+## Next Steps Checklist
+
+1. Complete initial setup (`make backup-setup`)
+2. Configure S3 credentials in vault
+3. Run a test backup (`make backup`)
+4. Verify S3 sync (`make s3-test && make backup-s3`)
+5. Monitor timers (`make backup-timers`)
+6. Test a restore in dry-run mode
+7. Schedule regular restore drills (monthly)
+8. Optional: set up Gotify notifications
+9. Optional: create a Grafana dashboard for backup metrics
 
 ---
 

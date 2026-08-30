@@ -1,8 +1,11 @@
 include makefiles/docker.mk
 include makefiles/user.mk
-include makefiles/deploy.mk
+include makefiles/proxy.mk
 include makefiles/base-stack.mk
 include makefiles/backup.mk
+# clamav.mk is disabled/unmaintained (its role and playbook still exist but this
+# integration hasn't been verified against the current stack layout) — left commented
+# out intentionally rather than deleted; see reports/architecture-review.md.
 #include makefiles/clamav.mk
 
 # Makefile - Docker Installation Commands

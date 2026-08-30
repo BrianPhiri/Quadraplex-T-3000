@@ -1,119 +1,24 @@
-Media Stack Overview
+# base-stack
 
-Self-hosted media ecosystem managed via Docker Compose.
-The stack utilizes a collection of specialized applications ("Arr" services) to automate the discovery, downloading, and organization of media, which is then served by a centralized media server.
+Generic Docker Compose lifecycle role, shared by every "stack" (media, utility, dns) deployed
+through `roles/dynamic-stack`. Despite the name, it has no media-specific logic — it's the common
+plumbing every stack needs, driven entirely by the `stack_name`, `stack_config`, and `services`
+variables passed in by the caller.
 
-All services are configured to communicate over a single bridge network ({{ media_stack.network_name }}).
-1. Services Description
+Given those inputs, it:
 
-The configuration includes the following services, which are enabled based on your environment's settings:
+- Resolves the Docker runtime user/group (`stack_config.preferred_user` if it exists on the host,
+  otherwise falls back to `ansible_user`) and their UID/GID (`tasks/main.yml`).
+- Creates the stack's base/config/data directories and per-service subdirectories, including
+  extra `logs/` dirs for the Arr-family services and Grafana's provisioning subtree
+  (`tasks/directories.yml`).
+- Renders the stack's `.env` file plus any stack-specific config files — currently the
+  utility-stack's Prometheus, Loki, Promtail configs and Grafana datasource provisioning
+  (`tasks/configs.yml`).
+- Pulls images (optional), runs `docker compose up -d`, and installs/enables a systemd unit for
+  the stack (`tasks/docker-compose.yml`).
+- Verifies the deployed containers are running, listening on their configured ports, correctly
+  owned, and that the systemd service is enabled (`tasks/verify.yml`).
 
-Service
-	
-
-Image
-	
-
-Role & Purpose
-
-Jellyfin
-	
-
-jellyfin
-	
-
-Media Server (Playback): A way stream your media to any device. It scans the organized media folders (/data/movies, /data/tvshows, etc.) and provides the user interface for playback.
-
-Jellyseerr
-	
-
-jellyseerr
-	
-
-Request Management: A user-friendly service for managing media requests. Users browse and request movies or shows, which it forwards to the appropriate "Arr" application (Radarr, Sonarr).
-
-qBittorrent
-	
-
-qbittorrent
-	
-
-Download Client: A lightweight, high-performance torrent client used by the "Arr" services to download requested media files to the shared /downloads volume.
-
-Prowlarr
-	
-
-prowlarr
-	
-
-Indexer Management: Acts as a centralized proxy for managing and configuring all your torrent trackers and indexers. The "Arr" applications query Prowlarr, which handles searching across multiple indexers.
-
-Sonarr
-	
-
-sonarr
-	
-
-TV Show Management: Automatically monitors for new TV series and episodes, searches for desired quality, sends the download request, and organizes the final files into the /tv library.
-
-Radarr
-	
-
-radarr
-	
-
-Movie Management: Automatically monitors for movies, searches for desired quality, sends the download request, and organizes the final files into the /movies library.
-
-Lidarr
-	
-
-lidarr
-	
-
-Music Management: Automatically monitors for artists and albums, searches for releases, sends the download request, and organizes the final files into the /music library.
-
-Bazarr
-	
-
-bazarr
-	
-
-Subtitle Management: Integrates with Sonarr and Radarr to automatically search for and download subtitles for your TV shows and movies.
-
-Kavita
-	
-
-kavita
-	
-
-Reading Server: A media server for reading digital comics, manga, and books.
-
-Suggestarr
-	
-
-suggestarr
-	
-
-Recommendation System: Automate media content recommendations and download requests based on user activity in media servers like Jellyfin
-
-Releasarr
-	
-
-releasarr
-	
-
-Release Management: A tool focused on monitoring tool for new music from artists.
-
-Huntarr
-	
-
-huntarr
-	
-
-Huntarr: Automatic missing content hunter for Sonarr, Radarr, Lidarr, 
-2. Service Interaction Diagram (The "Arr" Workflow)
-
-The core functionality of this stack revolves around the automated acquisition pipeline, which connects the user request interface (Jellyseerr) to the download clients (qBittorrent) via the media managers (Radarr/Sonarr/Lidarr) and indexer manager (Prowlarr).
-
-Acuisition Flow:
-[will working on this next weekend]
+It is invoked via `include_role` from `roles/dynamic-stack`, which is responsible for actually
+generating the stack's `docker-compose.yml` before handing off to this role.

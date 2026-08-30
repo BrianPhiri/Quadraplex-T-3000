@@ -189,10 +189,12 @@ facts: validate-target ## Gather facts from target (TARGET=host)
 	@ansible $(TARGET) -i $(INVENTORY) -m setup
 
 .PHONY: check-syntax
-check-syntax: ## Check playbook syntax
-	@echo "$(BLUE)Checking playbook syntax...$(RESET)"
+check-syntax: ## Check playbook syntax (stack + proxy playbooks)
+	@echo "$(BLUE)Checking stack playbook syntax...$(RESET)"
 	@ansible-playbook -i $(INVENTORY) --syntax-check $(PLAYBOOKS_DIR)/deploy-stack.yml
-	@echo "$(GREEN)✓ Syntax OK$(RESET)"
+	@echo "$(BLUE)Checking proxy playbook syntax...$(RESET)"
+	@ansible-playbook -i $(INVENTORY) --syntax-check $(PLAYBOOKS_DIR)/deploy-proxy.yml
+	@echo "$(GREEN)✓ All syntax checks passed$(RESET)"
 
 .PHONY: init-stack
 init-stack: ## Initialize new stack structure (STACK=name)
@@ -236,9 +238,6 @@ validate-stack:
 	@if [ ! -f "$(STACKS_DIR)/$(STACK)/base.yml" ]; then \
 		echo "$(RED)Error: base.yml not found for stack '$(STACK)'$(RESET)"; \
 		exit 1; \
-	fi
-	@if [ ! -f "$(STACKS_DIR)/$(STACK)/$(ENV).yml" ]; then \
-		echo "$(YELLOW)Warning: $(ENV).yml not found for stack '$(STACK)', using only base.yml$(RESET)"; \
 	fi
 
 .PHONY: validate-target
