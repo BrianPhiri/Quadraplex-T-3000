@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Pre-commit hook: refuse to let a plaintext ansible-vault file land in a commit.
+#
+# git has no hook that fires on `git add` itself, so this runs at commit time
+# instead (which also covers `git commit -am`, since -a stages before the
+# commit hooks run) - by then every vault.yml this commit would include is
+# already in the index, and that's what we check.
+#
+# Installed via `make install-hooks` (sets core.hooksDir=.githooks so git
+# runs this without copying it into .git/hooks).
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+VAULT_PASSWORD_FILE="${ANSIBLE_VAULT_PASSWORD_FILE:-.vault_password}"
+
+# Every vault.yml staged in this commit (added/copied/modified - a deletion has
+# no content to check).
+mapfile -t VAULT_FILES < <(git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)vault\.yml$' || true)
+
+if [ "${#VAULT_FILES[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+fail=0
+for f in "${VAULT_FILES[@]}"; do
+  staged_content="$(git show ":$f" 2>/dev/null || true)"
+  case "$staged_content" in
+    '$ANSIBLE_VAULT;'*)
+      continue
+      ;;
+  esac
+
+  echo "pre-commit: $f is staged in plaintext."
+
+  if [ ! -f "$VAULT_PASSWORD_FILE" ]; then
+    echo "pre-commit: vault password file '$VAULT_PASSWORD_FILE' not found - cannot encrypt it for you." >&2
+    echo "pre-commit: run 'make vault-encrypt' yourself, or set ANSIBLE_VAULT_PASSWORD_FILE, then retry." >&2
+    fail=1
+    continue
+  fi
+
+  echo "pre-commit: encrypting $f before commit..."
+  if ! ansible-vault encrypt --vault-password-file "$VAULT_PASSWORD_FILE" --encrypt-vault-id default "$f"; then
+    echo "pre-commit: failed to encrypt $f - aborting commit." >&2
+    fail=1
+    continue
+  fi
+  git add "$f"
+done
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: aborting commit - fix the vault file(s) above." >&2
+  echo "pre-commit: (use 'git commit --no-verify' to bypass this check - NOT recommended)" >&2
+  exit 1
+fi
+
+exit 0
