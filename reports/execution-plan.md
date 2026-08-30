@@ -20,7 +20,11 @@ order" note before starting, since some items depend on earlier ones or on you m
 
 ---
 
-## Batch 1 — Git hygiene (do this first, before any further code edits)
+## Batch 1 — Git hygiene (do this first, before any further code edits) ✅ done
+
+Split into 6 commits on `chore/batch-1-2-fixes`: bug fixes, Loki/Promtail stack, qui/profilarr,
+misc tweaks, Batch 0 simplification, and the review reports. Working tree is clean.
+
 
 Every remaining code batch below touches files that are *already* mid-diff from your in-progress
 Loki/Promtail/qui/profilarr work. Splitting that into logical commits now, before piling more
@@ -34,28 +38,65 @@ diff of its own.
 
 ---
 
-## Batch 2 — Do now: trivial, non-breaking, zero operator decisions
+## Batch 2 — Do now: trivial, non-breaking, zero operator decisions ✅ done
 
 Everything here is either a manual one-off cleanup, or a code change with no behavioral downside
-for how you currently use the system.
+for how you currently use the system. All committed on `chore/batch-1-2-fixes`.
 
-| # | Task | Where | Difficulty | Breaking? |
-|---|---|---|---|---|
-| 2.1 | **Fix local SSH key permissions** — `chmod 600 ~/.ssh/id_ed25519 && sudo chown brian:brian ~/.ssh/id_ed25519*` on this control machine (found world-readable, root-owned, during the recon session) | Control machine | Trivial | None |
-| 2.2 | **Free disk space on the server** — `docker rmi` the leftover images for disabled services (calibre 3.4GB, shelfmark 1.25GB, lazylibrarian 389MB, audiobookshelf 320MB, pairdrop 125MB ≈ 5.5GB). Server is at **363MB free / 100% full** — this is the most urgent item in the whole plan | Server (manual, SSH) | Trivial | None |
-| 2.3 | Clean up stray `docker-compose.yml.<pid>.<timestamp>~` backup files under `/opt/{media,utility,proxy}-stack/` (~35 files, ~280KB, some root-owned) | Server (manual, SSH) | Trivial | None |
-| 2.4 | **Deploy the backup system** — `make backup-setup TARGET=<host>` per `docs/BACKUP.md`, then verify with `make backup-status`. Currently **zero backups exist** despite the feature being fully built | `roles/backup/`, run via Makefile | Small | None (purely additive) |
-| 2.5 | Delete dead `roles/dynamic-stack/templates/services/calico.yml.j2` + `etcd.yml.j2` (Findings #1, #12) — confirmed unreferenced by any vars file, confirmed no such containers exist on the server | Code | Trivial | None — *but confirm first these aren't parked for a future Calico rollout; if they are, rename to `.disabled` instead of deleting* |
-| 2.6 | Add `no_log: true` to the secret-templating tasks (Finding #8): `roles/backup/tasks/main.yml` (rclone config), `roles/traefik/tasks/configs.yml` (`.env` generation), `roles/base-stack/tasks/configs.yml` (`.env` generation) | Code | Small | None |
-| 2.7 | Replace `\| default('changeme')` with `\| mandatory(...)` for the 5 vault fallbacks (Finding #9): `vars/stacks/media/base.yml:234`, `vars/stacks/utility/base.yml:182,187,189,200` | Code | Trivial | None today (immich/n8n/grist are all `enabled: false`) — only affects the moment someone enables one of those services without first populating its vault entry, which is the intended effect |
-| 2.8 | Fix `roles/dynamic-stack/templates/services/prometheus.yml.j2`'s unconditional `ports:` block to match every sibling template's `{% if port is defined %}` pattern, and add a `127.0.0.1:` bind (Findings #5, #20) | Code | Trivial | Non-breaking for Prometheus/Grafana/backups (all reach it over the internal Docker network or loopback). **Breaking only if you currently browse `http://<host-ip>:9090` directly** — you'd lose that; Grafana remains the intended UI |
-| 2.9 | Add `127.0.0.1:` bind to `cadvisor.yml.j2` / `node_exporter.yml.j2` (Finding #4) | Code | Trivial | Same caveat as 2.8 — non-breaking for Prometheus scraping, breaking only for direct browser/curl access to `:8081`/`:9100` from another LAN device |
-| 2.10 | Traefik `debug` default → `false` in `roles/traefik/templates/traefik.yml.j2` (Finding #11, debug half only — not `insecureSkipVerify`, that's Batch 4) | Code | Trivial | None (only affects log verbosity) |
+| # | Task | Where | Status |
+|---|---|---|---|
+| 2.1 | Fix local SSH key permissions | Control machine | ⏳ **Still needs you** — blocked on interactive sudo; run `! sudo chown brian:brian ~/.ssh/id_ed25519* && chmod 600 ~/.ssh/id_ed25519*` yourself |
+| 2.2 | Free disk space on the server (`docker rmi` the 5 leftover disabled-service images) | Server (SSH) | ✅ Done — reclaimed 5.4GB |
+| 2.3 | Clean up stray `docker-compose.yml.*~` backup files | Server (SSH) | ✅ Done |
+| 2.4 | Deploy the backup system | `roles/backup/`, Makefile | ✅ Done — see "Unplanned discoveries" below for what it took |
+| 2.5 | Delete dead `calico.yml.j2` + `etcd.yml.j2` | Code | ✅ Done (`7c2aa3b`) — confirmed with you first, deleted |
+| 2.6 | Add `no_log: true` to secret-templating tasks | Code | ✅ Done (`669819a`) |
+| 2.7 | Replace `changeme` fallbacks with `mandatory()` | Code | ✅ Done (`8236030`) |
+| 2.8 | Fix Prometheus's `ports:` guard + localhost bind | Code | ✅ Done (`73a78c2`) |
+| 2.9 | Localhost-bind cAdvisor/node_exporter | Code | ✅ Done (`73a78c2`, same commit) |
+| 2.10 | Traefik `debug` default → off | Code | ✅ Done (`8e16b40`) — `vars/proxy/base.yml` explicitly set `debug: true`, so both the vars value and the template default were flipped |
 
-**Note on 2.8/2.9**: nikto/nmap confirmed these are *currently* reachable directly on your LAN
-with no auth. If you rely on hitting them by raw IP:port from your phone or another device, do
-that check before applying — otherwise these are the highest safety-per-effort fixes in the whole
-plan.
+### Unplanned discoveries fixed along the way
+
+Deploying the backup system (2.4) uncovered a chain of pre-existing, unrelated problems — each
+confirmed with you before acting:
+
+- **Root disk kept refilling after cleanup**: `jellyfin`'s container writable layer had grown to
+  9.37GB because it had no volume mount for `/tmp` (where its trickplay thumbnail cache lives) —
+  fixed with a real volume mount (`df4892e`), existing cache cleared manually on the server.
+- **Server-wide DNS was completely broken**: `/etc/resolv.conf` pointed at systemd-resolved's stub,
+  but that service was inactive (disabled to free port 53 for AdGuard) — fixed by pointing it at
+  AdGuard (127.0.0.1) directly, which then revealed AdGuard's own upstream resolvers are broken
+  (its own admin config, out of scope here — **you should log into AdGuard and fix its upstream
+  DNS servers**). Currently falls back to `1.1.1.1` so the host itself has working DNS in the
+  meantime.
+- **Server clock was ~2.5 months behind**: chrony had zero reachable time sources (likely a
+  downstream effect of the DNS breakage). Restarted chrony + forced a step correction once DNS was
+  fixed — clock is now correct and synchronized.
+- **`inventory/group_vars/vault.yml` was never actually loaded by any playbook** — wrong filename
+  for Ansible's auto-loading convention, and no playbook had an explicit `vars_files` entry for it.
+  Restructured into the standard `group_vars/all/` directory pattern (`6ec9fe3`). **Follow-up
+  needed**: this means `vault_netbird_setup_key` now resolves to its real value for the first time
+  — verify NetBird still connects correctly after the next utility-stack deploy.
+- **rclone install was curl-piped onto the host and silently failed** (masked by the DNS issue,
+  then again by the clock issue via a Docker registry TLS error) — switched to running rclone via
+  its official Docker image instead of a host-installed binary, matching how everything else in
+  this repo runs (`roles/backup/defaults/main.yml`, plus `makefiles/backup.mk`'s `s3-test`/
+  `s3-list`/`s3-size` which had the same raw-binary problem, `70ac1d7`).
+- **Backblaze B2 credentials didn't exist anywhere** (`backup_s3_access_key`/etc. referenced vault
+  vars that were never defined) — added as placeholders (`21acd4c`). **Follow-up needed**: replace
+  `REPLACE_ME_B2_KEY_ID` / `REPLACE_ME_B2_APPLICATION_KEY` / the endpoint in
+  `inventory/group_vars/all/vault.yml` with your real Backblaze B2 application key before S3 sync
+  will actually work (confirmed via `make s3-test` — pipeline works end-to-end, just needs real
+  creds).
+- **Added vault tooling that wasn't asked for in the original plan but came up naturally**:
+  `make vault-status/vault-encrypt/vault-decrypt/vault-edit` plus a pre-commit git hook
+  (`make install-hooks`) that auto-encrypts any vault.yml accidentally staged in plaintext
+  (`7c9dc86`).
+
+**Note on 2.8/2.9**: nikto/nmap confirmed these were *currently* reachable directly on your LAN
+with no auth before this fix. If you relied on hitting them by raw IP:port from your phone or
+another device, that access is now gone (Grafana remains the intended UI for metrics).
 
 ---
 
