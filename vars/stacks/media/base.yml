@@ -56,6 +56,8 @@ media_stack:
     audiobookshelf: "latest"
     lazylibrarian: "latest"
     shelfmark: "latest"
+    profilarr: "latest"
+    qui: "latest"
 
 # Service configuration
 media_services:
@@ -109,6 +111,7 @@ media_services:
   jellyfin:
     enabled: true
     version: "{{ media_stack.versions.jellyfin | default('latest') }}"
+    port: 8096
     networks:
       - traefik_net
     traefik:
@@ -287,4 +290,24 @@ media_services:
     traefik:
       enabled: true
       host: "shelfmark"
+      domain: "{{ domain }}"
+  profilarr:
+    enabled: true
+    port: 6868
+    version: "{{ media_stack.versions.profilarr | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "profilarr"
+      domain: "{{ domain }}"
+  qui:
+    enabled: true
+    port: 7476
+    version: "{{ media_stack.versions.qui | default('latest') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "qui"
       domain: "{{ domain }}"

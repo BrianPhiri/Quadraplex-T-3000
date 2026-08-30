@@ -1,0 +1,35 @@
+qui:
+  image: ghcr.io/autobrr/qui:{{ services.qui.version }}
+  container_name: qui
+  restart: unless-stopped
+  volumes:
+    - {{ stack_config.config_path }}/qui:/config
+{% if services.qui.port is defined %}
+  ports:
+    - "{{ services.qui.port }}:7476"
+{% endif %}
+{% if services.qui.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.qui.rule=Host(`{{ services.qui.traefik.host }}.{{ services.qui.traefik.domain }}`)
+    - traefik.http.routers.qui.entrypoints=https
+    - traefik.http.routers.qui.tls=true
+    - traefik.http.routers.qui-http.rule=Host(`{{ services.qui.traefik.host }}.{{ services.qui.traefik.domain }}`)
+    - traefik.http.routers.qui-http.entrypoints=http
+    - traefik.http.routers.qui-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.qui.loadbalancer.server.port=7476
+    - traefik.http.services.qui.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.qui.networks is defined %}
+  networks:
+{% for network in services.qui.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.qui.dnss is defined %}
+  dns:
+{% for dns in services.qui.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

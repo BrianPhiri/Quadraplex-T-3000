@@ -1,0 +1,37 @@
+profilarr:
+  image: santiagosayshey/profilarr:{{ services.profilarr.version }}
+  container_name: profilarr
+  restart: unless-stopped
+  environment:
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/profilarr:/config
+{% if services.profilarr.port is defined %}
+  ports:
+    - "{{ services.profilarr.port }}:6868"
+{% endif %}
+{% if services.profilarr.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.profilarr.rule=Host(`{{ services.profilarr.traefik.host }}.{{ services.profilarr.traefik.domain }}`)
+    - traefik.http.routers.profilarr.entrypoints=https
+    - traefik.http.routers.profilarr.tls=true
+    - traefik.http.routers.profilarr-http.rule=Host(`{{ services.profilarr.traefik.host }}.{{ services.profilarr.traefik.domain }}`)
+    - traefik.http.routers.profilarr-http.entrypoints=http
+    - traefik.http.routers.profilarr-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.profilarr.loadbalancer.server.port=6868
+    - traefik.http.services.profilarr.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.profilarr.networks is defined %}
+  networks:
+{% for network in services.profilarr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.profilarr.dnss is defined %}
+  dns:
+{% for dns in services.profilarr.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
