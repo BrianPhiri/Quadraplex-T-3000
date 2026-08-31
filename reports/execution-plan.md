@@ -38,6 +38,17 @@ call on when). Working tree is clean, nothing uncommitted.
 (qui/profilarr auth — see update, it's already resolved — plus SSH password auth and the new
 domain-default item below) is the natural next step whenever you want to continue.
 
+8. **Jellyfin's trickplay thumbnails are misconfigured** — set to save next to your media files,
+   which this repo intentionally mounts read-only, so it's throwing a `Read-only file system`
+   error every time it runs (confirmed live, unrelated to the login issue below). Fix from
+   Jellyfin's own admin UI: Dashboard → Playback → Trickplay Images → change "Save trickplay
+   files" away from the local/next-to-media option. Not an Ansible-managed setting.
+9. **Deploy the media stack** to actually apply the `/tmp` volume fix (`df4892e`, added earlier
+   this session) — it's in the code but was never deployed; the live container still doesn't have
+   it. Run `make deploy STACK=media TARGET=home DOMAIN=brianphiri.digital SUBDOMAIN=media` next
+   time you touch the media stack (bundling it with the trickplay-setting fix above would be a
+   natural pairing, since both concern the same disk-usage issue).
+
 For the full story of what happened during Batch 2 (a chain of unrelated pre-existing bugs it
 uncovered — disk-filling Jellyfin cache, broken server DNS, a clock 2.5 months off, the
 `group_vars` bug, a silently-failing rclone install), see "Unplanned discoveries" under Batch 2
@@ -168,6 +179,17 @@ another device, that access is now gone (Grafana remains the intended UI for met
   already being attempted and failing. **This needs a new Cloudflare token before Sep 16** — see
   the top of this file for the exact steps. Nothing was changed in the vault since I don't have a
   replacement token; this is purely a finding.
+- **Jellyfin logins were intermittently failing** with a `SaveChangesAsync` exception on every
+  login attempt (a DB write Jellyfin does to record last-login-time). Investigated end-to-end: full
+  Ansible code review turned up nothing (no task touches jellyfin's config directory after initial
+  creation; the backup role only reads the DB non-destructively into a separate location and hadn't
+  even run yet; ClamAV only scans, doesn't modify). File/WAL/SHM ownership on the live DB was
+  correct throughout. Live logs caught a background ffmpeg trickplay-generation job running at the
+  exact moment a login failed, pointing to transient SQLite lock contention rather than a
+  permissions or code bug. **Fixed by `docker restart jellyfin`** — confirmed via a live login
+  immediately after, which succeeded cleanly. Also found, unrelated: Jellyfin's trickplay setting
+  is misconfigured to save thumbnails next to media files (mounted read-only by design here),
+  throwing a separate, real `Read-only file system` error on every attempt — see item 8 above.
 
 ---
 
