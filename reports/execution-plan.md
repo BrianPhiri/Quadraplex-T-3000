@@ -7,22 +7,36 @@ fully done — 18 commits on branch **`chore/batch-1-2-fixes`** (not merged to `
 call on when). Working tree is clean, nothing uncommitted.
 
 **Still pending from you before anything else:**
-1. **`~/.ssh/id_ed25519` permissions** — still world-readable/root-owned on this control machine.
+1. **🔴 URGENT — Cloudflare API token expired 2026-07-31** (verified directly against Cloudflare's
+   own token-verify API). The current wildcard cert for `*.media.brianphiri.digital` is valid until
+   Sep 16, 2026, but Traefik is already attempting (and failing) to auto-renew it, since renewal
+   starts ~30 days ahead of expiry. **If not fixed before Sep 16, every service under
+   `media.brianphiri.digital` loses HTTPS at once.** Generate a new token in Cloudflare (needs
+   `Zone:DNS:Edit` scoped to `brianphiri.digital`) and give it to Claude to update in
+   `vars/proxy/vault.yml` (`vault_cloudflare_token`), or update it yourself with `make vault-edit
+   FILE=vars/proxy/vault.yml`.
+2. **`~/.ssh/id_ed25519` permissions** — still world-readable/root-owned on this control machine.
    Blocked on interactive sudo; run yourself:
    `! sudo chown brian:brian ~/.ssh/id_ed25519* && chmod 600 ~/.ssh/id_ed25519*`
-2. **Real Backblaze B2 credentials** — `inventory/group_vars/all/vault.yml` has placeholders
+3. **Real Backblaze B2 credentials** — `inventory/group_vars/all/vault.yml` has placeholders
    (`REPLACE_ME_B2_KEY_ID` / `REPLACE_ME_B2_APPLICATION_KEY` / a guessed endpoint). `make s3-test`
    confirms the whole pipeline works end-to-end; it just needs your real key ID/app key/endpoint.
-3. **AdGuard's own upstream DNS servers are broken** (its admin-panel config, not this repo's) —
+4. **AdGuard's own upstream DNS servers are broken** (its admin-panel config, not this repo's) —
    log in and fix them; the server currently falls back to `1.1.1.1` for its own system DNS as a
    workaround, which works but bypasses AdGuard's ad-blocking for the host's own traffic.
-4. **Verify NetBird still connects** next time the utility stack is deployed —
+5. **Verify NetBird still connects** next time the utility stack is deployed —
    `vault_netbird_setup_key` now resolves to its real value for the first time (a pre-existing
    `group_vars` loading bug meant it was silently empty before).
-5. Merge or open a PR for `chore/batch-1-2-fixes` whenever you're satisfied with it.
+6. Merge or open a PR for `chore/batch-1-2-fixes` whenever you're satisfied with it.
+7. **When redeploying the proxy stack, always pass `DOMAIN=brianphiri.digital SUBDOMAIN=media`** —
+   forgetting this (as happened once this session) regenerates Traefik's dashboard router with the
+   placeholder `example.com` domain and breaks dashboard access until redeployed with the correct
+   values again. Worth considering hardcoding these as the vars file's defaults instead of relying
+   on every `make deploy-proxy` invocation to pass them — see Batch 3 addition below.
 
 **Not started yet:** Batches 3 through 6 below — nothing in them has been touched. Batch 3
-(qui/profilarr auth, SSH password auth) is the natural next step whenever you want to continue.
+(qui/profilarr auth — see update, it's already resolved — plus SSH password auth and the new
+domain-default item below) is the natural next step whenever you want to continue.
 
 For the full story of what happened during Batch 2 (a chain of unrelated pre-existing bugs it
 uncovered — disk-filling Jellyfin cache, broken server DNS, a clock 2.5 months off, the
@@ -129,6 +143,32 @@ confirmed with you before acting:
 with no auth before this fix. If you relied on hitting them by raw IP:port from your phone or
 another device, that access is now gone (Grafana remains the intended UI for metrics).
 
+### Additional fixes made 2026-08-31 (post-session follow-up)
+
+- **Root cause found for "prowlarr redirects to the AdGuard page"**: AdGuard Home runs with
+  `network_mode: host` and was bound directly to host port 80 (its own internal config, not
+  managed by Ansible), while Traefik's `http` entrypoint had been mapped to port 82 to avoid the
+  conflict. Effect: **every** Traefik-fronted domain's plain `http://` request — not just
+  prowlarr — silently hit AdGuard's login page instead of getting redirected to HTTPS by Traefik.
+  Fixed by editing `AdGuardHome.yaml`'s `http.address` to `0.0.0.0:81` on the live server (backed
+  up first, verified AdGuard's UI still worked before touching anything else), then flipping
+  `vars/proxy/base.yml`'s `http: 82` → `80` in code and redeploying (`0ba6394`). Verified
+  end-to-end: `http://` now correctly 301s to `https://` for Traefik-fronted domains, AdGuard
+  reachable on its new port 81, HTTPS unaffected throughout.
+- **Incident during that fix's verification**: a `make deploy-proxy TARGET=home` run (mine, to test
+  the port change) without `DOMAIN=`/`SUBDOMAIN=` regenerated Traefik's dashboard router using the
+  placeholder `example.com` domain, breaking dashboard access (`401`/no valid cert, since Let's
+  Encrypt policy-blocks `.example.com`). Fixed by redeploying with the correct
+  `DOMAIN=brianphiri.digital SUBDOMAIN=media` — verified the dashboard is now reachable with a
+  valid, trusted cert (reused the existing `*.media.brianphiri.digital` wildcard, no new Let's
+  Encrypt request needed). See Batch 3.5 (new) for the follow-up fix to stop this from recurring.
+- **🔴 Found while investigating the above: your Cloudflare API token expired on 2026-07-31**,
+  confirmed directly against Cloudflare's own token-verify API (independent of anything touched
+  this session). The current wildcard cert is valid until Sep 16, 2026, but auto-renewal is
+  already being attempted and failing. **This needs a new Cloudflare token before Sep 16** — see
+  the top of this file for the exact steps. Nothing was changed in the vault since I don't have a
+  replacement token; this is purely a finding.
+
 ---
 
 ## Batch 3 — Do soon: small/moderate effort, changes an access path (tell yourself before doing)
@@ -139,10 +179,11 @@ to remember the new way in afterward.
 
 | # | Task | Difficulty | Breaking? |
 |---|---|---|---|
-| 3.1 | **qui + profilarr: add Traefik basicauth middleware, drop their direct host-port publish** (`7476`, `6868`) — new finding from the live scans (both are double-exposed: Traefik-fronted with no auth *and* directly published). Reuse the existing `traefik-auth` basicauth pattern from `roles/traefik/templates/docker-compose.yml.j2:34` | Moderate — needs a vault-sourced htpasswd secret + template/vars edits for both services | **Breaking**: removes unauthenticated direct-LAN access to both; going forward you'd reach them only via their Traefik hostname + a basic-auth login you set up |
+| 3.1 | ~~qui + profilarr: add Traefik basicauth middleware~~ — **✅ not needed, confirmed 2026-08-30**: both actually have their own built-in login pages (the earlier scan findings mistook "serves a page with no redirect" for "no auth," but the app itself gates access). Still true that both are double-published (Traefik + direct host port `7476`/`6868`) — dropping the direct host-port publish is now a lower-priority hygiene item, not a security one, since the app-level login covers the LAN exposure either way. | ~~Moderate~~ N/A | ~~Breaking~~ N/A |
 | 3.2 | **Restart Profilarr** (`docker restart profilarr` on the server) — it's been unresponsive since the nikto scan wedged it; you said "leave it, check later" | Trivial | None (recovers the hung process) |
 | 3.3 | Investigate Profilarr's fragility long-term — check if `santiagosayshey/profilarr`'s gunicorn setup supports `--workers`/`--timeout` tuning, since a single ordinary `HEAD`/`OPTIONS`/404 request was enough to hang it | Small-moderate (may require an upstream image change or entrypoint override, not just an Ansible edit) | None if done as an addition; risk is only in getting the gunicorn flags wrong |
 | 3.4 | Disable SSH `PasswordAuthentication` — no role currently manages `sshd_config`, so this needs a small new task (e.g. in `roles/pre-checks/` or a new minimal role) setting `PasswordAuthentication no` and reloading `sshd` | Small | **Breaking in the strict sense** (removes an enabled auth method) but **zero practical impact** — your key-based login is already confirmed working and is the only method you actually use |
+| 3.5 | **New, added 2026-08-31**: Hardcode `DOMAIN=brianphiri.digital SUBDOMAIN=media` as defaults in `makefiles/proxy.mk` (or `vars/proxy/base.yml`'s `domain`/`stack_domain` computation) instead of relying on every `make deploy-proxy` call to pass them correctly. Root-caused a real incident this session: a proxy redeploy without those flags silently regenerated the dashboard's router for the placeholder `example.com` domain, breaking dashboard access until manually corrected. | Small | None if done right — just changes what happens when the flags are *omitted*, not when they're passed explicitly |
 
 ---
 
