@@ -5,6 +5,14 @@ adguardhome:
   volumes:
     - {{ stack_config.data_path }}/adguard_home:/opt/adguardhome/work
     - {{ stack_config.config_path }}/adguard_home:/opt/adguardhome/conf
+  # NOTE: network_mode: host below means the ports: list here is cosmetic - Docker's
+  # port mapping does not apply under host networking. AdGuard actually binds to
+  # whatever its own AdGuardHome.yaml (http.address, in the config_path volume above)
+  # says, independent of these values. If you change services.adguard_home.http here,
+  # you must also update AdGuardHome.yaml's http.address to match and restart the
+  # container - otherwise this repo's vars and the live server silently disagree, which
+  # is exactly what caused AdGuard to squat on port 80 and hijack Traefik's http
+  # entrypoint (see reports/execution-plan.md, Batch 3).
   ports:
     - "53:53/tcp"
     - "53:53/udp"

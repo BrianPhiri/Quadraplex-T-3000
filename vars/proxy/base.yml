@@ -21,7 +21,7 @@ proxy_services:
   traefik:
     enabled: true
     https: 443
-    http: 82
+    http: 80
     version: "{{ proxy_stack.versions.traefik | default('latest') }}"
     dashboard:
       enabled: true
