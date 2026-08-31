@@ -46,6 +46,7 @@ utility_stack:
     homeassistant: "stable"
     pairdrop: "latest"
     portracker: "latest"
+    mealie: "v3.24.0"
     n8n:
       app: "1.120.3"
       postgres: "17-alpine"
@@ -215,4 +216,17 @@ utility_services:
     traefik:
       enabled: true
       host: "ports"
+      domain: "{{ utility_stack.stack_domain }}"
+  mealie:
+    enabled: true
+    # SQLite install per https://docs.mealie.io/documentation/getting-started/installation/sqlite/
+    # - no separate DB container/credentials needed. Traefik-only (no direct host port), matching
+    # grafana/loki/promtail - avoids the double-exposure pattern flagged for other services.
+    version: "{{ utility_stack.versions.mealie | default('v3.24.0') }}"
+    allow_signup: "false"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "mealie"
       domain: "{{ utility_stack.stack_domain }}"

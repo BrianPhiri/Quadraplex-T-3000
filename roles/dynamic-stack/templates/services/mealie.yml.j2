@@ -1,0 +1,43 @@
+mealie:
+  image: ghcr.io/mealie-recipes/mealie:{{ services.mealie.version }}
+  container_name: mealie
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+    - ALLOW_SIGNUP={{ services.mealie.allow_signup | default('false') }}
+{% if services.mealie.traefik.enabled | default(false) %}
+    - BASE_URL=https://{{ services.mealie.traefik.host }}.{{ services.mealie.traefik.domain }}
+{% endif %}
+  volumes:
+    - {{ stack_config.data_path }}/mealie:/app/data
+{% if services.mealie.port is defined %}
+  ports:
+    - "{{ services.mealie.port }}:9000"
+{% endif %}
+{% if services.mealie.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.mealie.rule=Host(`{{ services.mealie.traefik.host }}.{{ services.mealie.traefik.domain }}`)
+    - traefik.http.routers.mealie.entrypoints=https
+    - traefik.http.routers.mealie.tls=true
+    - traefik.http.routers.mealie-http.rule=Host(`{{ services.mealie.traefik.host }}.{{ services.mealie.traefik.domain }}`)
+    - traefik.http.routers.mealie-http.entrypoints=http
+    - traefik.http.routers.mealie-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.mealie.loadbalancer.server.port=9000
+    - traefik.http.services.mealie.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.mealie.networks is defined %}
+  networks:
+{% for network in services.mealie.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.mealie.dnss is defined %}
+  dns:
+{% for dns in services.mealie.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
