@@ -7,14 +7,13 @@ fully done — 18 commits on branch **`chore/batch-1-2-fixes`** (not merged to `
 call on when). Working tree is clean, nothing uncommitted.
 
 **Still pending from you before anything else:**
-1. **🔴 URGENT — Cloudflare API token expired 2026-07-31** (verified directly against Cloudflare's
-   own token-verify API). The current wildcard cert for `*.media.brianphiri.digital` is valid until
-   Sep 16, 2026, but Traefik is already attempting (and failing) to auto-renew it, since renewal
-   starts ~30 days ahead of expiry. **If not fixed before Sep 16, every service under
-   `media.brianphiri.digital` loses HTTPS at once.** Generate a new token in Cloudflare (needs
-   `Zone:DNS:Edit` scoped to `brianphiri.digital`) and give it to Claude to update in
-   `vars/proxy/vault.yml` (`vault_cloudflare_token`), or update it yourself with `make vault-edit
-   FILE=vars/proxy/vault.yml`.
+1. ~~**🔴 URGENT — Cloudflare API token expired 2026-07-31**~~ — **✅ fixed 2026-09-02**: you
+   generated a new token (`Zone:DNS:Edit` + `Zone:Zone:Read`, scoped to `brianphiri.digital`) and
+   updated `vars/proxy/vault.yml` yourself. Redeployed the proxy stack and verified end-to-end:
+   token confirmed `active` (valid until Sep 2027) via Cloudflare's own API, plus a full
+   create/delete DNS-record functional test (the same sequence the real ACME challenge performs)
+   passed cleanly. Traefik hasn't needed to actually renew yet (current wildcard cert is still
+   valid until Sep 16), but everything needed for that renewal is confirmed working.
 2. **`~/.ssh/id_ed25519` permissions** — still world-readable/root-owned on this control machine.
    Blocked on interactive sudo; run yourself:
    `! sudo chown brian:brian ~/.ssh/id_ed25519* && chmod 600 ~/.ssh/id_ed25519*`
