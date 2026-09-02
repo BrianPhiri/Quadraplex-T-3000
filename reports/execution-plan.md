@@ -48,11 +48,30 @@ domain-default item below) is the natural next step whenever you want to continu
    it. Run `make deploy STACK=media TARGET=home DOMAIN=brianphiri.digital SUBDOMAIN=media` next
    time you touch the media stack (bundling it with the trickplay-setting fix above would be a
    natural pairing, since both concern the same disk-usage issue).
+10. **Uindex indexer is permanently blocked by Cloudflare** (`"Unable to access uindex.org, blocked
+    by CloudFlare Protection"`) — not a homelab config issue, just how that tracker behaves now.
+    Either accept it as unusable or look into a FlareSolverr-style proxy in front of it if it
+    matters to you.
+11. **Prowlarr's "Mylar" application connection is still flagged unavailable** (6+ hours of
+    failures, same DNS-outage root cause as the indexers) — wasn't re-tested since it's a separate
+    app from Sonarr/Radarr; worth clicking Test on it in Prowlarr's UI if comics/Mylar matters.
+12. **Version bumps flagged for manual review** (found while checking every pinned image against
+    its registry, `4265b03`) — none applied, each has a real breaking-change risk:
+    - n8n: stable **2.x** now exists (currently pinned to 1.123.76) — own migration path.
+    - n8n's postgres: `17-alpine` → `18-alpine` available — needs dump/restore, not a tag swap.
+    - portainer (currently disabled): `2.33.0` → `2.45.0 LTS` — Portainer's docs require a backup
+      before upgrading.
+    - traefik: `v3.6.13` → `v3.7.12` — documented behavior changes (h2c header forwarding, wildcard
+      `Host()` matching, header-strategy rename) — check against `vars/proxy/traefik/traefik-routes.yml` first.
+    - mealie: `v3.24.0` → `v3.25.0` — real breaking change, `GET /api/auth/refresh` became `POST`.
+    - immich (currently disabled): `v2.3.1` → `v3.1.0` — major version jump.
+    - uptime_kuma: pinned major `"1"` → major `"2"` now exists.
 
 For the full story of what happened during Batch 2 (a chain of unrelated pre-existing bugs it
 uncovered — disk-filling Jellyfin cache, broken server DNS, a clock 2.5 months off, the
 `group_vars` bug, a silently-failing rclone install), see "Unplanned discoveries" under Batch 2
-below.
+below. For what happened investigating Seerr/Sonarr/Radarr/qBittorrent not grabbing downloads, see
+"Additional fixes made 2026-09-02" further down.
 
 ---
 
@@ -190,6 +209,48 @@ another device, that access is now gone (Grafana remains the intended UI for met
   immediately after, which succeeded cleanly. Also found, unrelated: Jellyfin's trickplay setting
   is misconfigured to save thumbnails next to media files (mounted read-only by design here),
   throwing a separate, real `Read-only file system` error on every attempt — see item 8 above.
+
+### Additional fixes made 2026-09-02
+
+- **Added Mealie** (SQLite install, `867e4c9`) to the utility stack — Traefik-only, no direct host
+  port, deployed and verified live (`https://mealie.media.brianphiri.digital` returns 200 through
+  a healthy container).
+- **Bumped n8n** `1.120.3` → `1.123.76` (`4265b03`) — routine same-major patch. See item 12 above
+  for the version bumps that were flagged instead of applied.
+- **Removed orphaned `crowdsec`/`wireshark` version entries** (`3a69e00`) from
+  `vars/stacks/utility/base.yml` — dead config, no service entry or template referenced either key
+  anywhere in the repo. `crowdsec`'s value was also a typo (`"latjst"`), moot now that the line's
+  gone.
+- **Root-caused and fixed "Seerr approves requests but Sonarr/Radarr never grab anything"** — a
+  multi-layered investigation:
+  1. Seerr → Sonarr/Radarr request submission was never actually broken — confirmed requests were
+     being sent and accepted correctly throughout.
+  2. The real break: Sonarr/Radarr's release searches consistently found **"0 active indexers"**.
+     Traced to two compounding causes: (a) two indexers (`TorrentGalaxyClone`, `Demonoid Clone`)
+     had **no indexer definition at all** left in Prowlarr's current catalog (626 entries checked,
+     no match for either) — deleted via Prowlarr's API, which correctly propagated the removal to
+     both Sonarr and Radarr; (b) the morning's DNS outage had pushed nearly every remaining indexer
+     into an **escalating failure-backoff** inside Prowlarr/Sonarr/Radarr's own health tracking,
+     and those backoffs **outlived the outage itself** — so even healthy indexers kept reading as
+     inactive long after DNS was fixed.
+  3. Fixed via the same non-destructive "Test" action a user would click in the UI, run against the
+     three still-flagged indexers (Prowlarr's `/api/v1/indexer/test`, Sonarr/Radarr's
+     `/api/v3/indexer/test`) — cleared the stale backoffs for `Torrent Downloads` and
+     `Internet Archive`. `Uindex` genuinely failed its test (Cloudflare-blocked at the source, see
+     item 10 above) and was correctly left alone.
+  4. **Verified end-to-end**: a live Ted Lasso search went from 0 to 7/8 active indexers in Sonarr,
+     ran a real search, and grabbed 3 releases that were confirmed sent to qBittorrent
+     successfully. Radarr showed 6/7 active similarly.
+  5. **Found and cleaned up incidentally**: Sonarr's download queue had 146 stale entries all
+     showing `"qBittorrent is reporting missing files"` — turned out to collapse to just 4 actual
+     torrents (the complete Hey Arnold! series, seasons 1/3/4/5, all added the same day in May and
+     genuinely deleted from disk since, confirmed via direct filesystem check). Bulk-removed all
+     146 queue entries (`DELETE /api/v3/queue/bulk`, `removeFromClient=true`) and triggered a fresh
+     series search — search completed cleanly but found no current release for Hey Arnold on any
+     active indexer (a legitimate "not currently available" result, not a further bug; it'll pick
+     up automatically via RSS if a release ever appears, since the series is still monitored).
+  - No Ansible code changes were needed for any of this — it was entirely live Prowlarr/Sonarr/
+    Radarr application state, unrelated to the Ansible-managed deployment itself.
 
 ---
 
