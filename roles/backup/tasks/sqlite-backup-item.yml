@@ -45,13 +45,13 @@
       changed_when: compress_result.rc == 0
 
     - name: Verify compressed backup exists
-      when: compress_result.rc == 0
+      when: (compress_result.rc | default(1)) == 0
       ansible.builtin.stat:
         path: "{{ backup_base_dir }}/{{ item.stack }}/databases/{{ item.name }}_{{ backup_timestamp }}.db.gz"
       register: compressed_backup_stat
 
     - name: Verify backup integrity
-      when: compressed_backup_stat.stat.exists
+      when: compressed_backup_stat.stat.exists | default(false)
       block:
         # sqlite3 needs a real seekable file (it seeks around pages for the
         # integrity check) - it can't open a pipe like /dev/stdin, so decompress
@@ -69,14 +69,14 @@
             state: absent
 
     - name: Log successful backup
-      when: compressed_backup_stat.stat.exists and integrity_check.stdout == "ok"
+      when: (compressed_backup_stat.stat.exists | default(false)) and (integrity_check.stdout | default('')) == "ok"
       ansible.builtin.debug:
         msg: "Successfully backed up {{ item.name }} database ({{ compressed_backup_stat.stat.size | human_readable }})"
 
     - name: Send Gotify notification on failure
       when: >
         backup_gotify_enabled and
-        (not compressed_backup_stat.stat.exists or integrity_check.stdout != "ok")
+        (not (compressed_backup_stat.stat.exists | default(false)) or (integrity_check.stdout | default('')) != "ok")
       ansible.builtin.uri:
         url: "{{ backup_gotify_url }}/message"
         method: POST
