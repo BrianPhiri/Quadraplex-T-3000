@@ -138,13 +138,13 @@ utility_services:
       host: "filestash"
       domain: "{{ utility_stack.stack_domain }}"
   glance:
-    enabled: false
+    enabled: true
     port: 8082
     version: "{{ utility_stack.versions.glance | default('latest') }}"
     networks:
       - traefik_net
     traefik:
-      enabled: false
+      enabled: true
       host: "view"
       domain: "{{ utility_stack.stack_domain }}"
   portracker:

@@ -1,0 +1,128 @@
+---
+# Glance dashboard config - rendered by roles/base-stack/tasks/configs.yml
+# (stack_name == 'utility-stack') to {{ stack_config.data_path }}/glance/glance.yml
+#
+# This is a hand-authored, mostly-static list of the homelab's currently-enabled
+# services (media, utility, and dns stacks) rather than a dynamic loop, since this
+# role only has the single deploying stack's vars in scope - see the utility stack's
+# vars/stacks/utility/base.yml, vars/stacks/media/base.yml, and vars/stacks/dns/base.yml
+# for the source of truth this list was built from. Update this file by hand when
+# services are added/removed/re-enabled elsewhere in the repo.
+#
+# Reference: https://github.com/glanceapp/glance/blob/main/docs/configuration.md
+
+pages:
+  - name: Home
+    columns:
+      - size: small
+        widgets:
+          - type: monitor
+            title: Service Status
+            cache: 1m
+            sites:
+              - title: Jellyfin
+                url: https://watch.{{ domain }}
+              - title: Overseerr
+                url: https://seerr.{{ domain }}
+              - title: Sonarr
+                url: https://sonarr.{{ domain }}
+              - title: Radarr
+                url: https://radarr.{{ domain }}
+              - title: Prowlarr
+                url: https://prowlarr.{{ domain }}
+              - title: Profilarr
+                url: https://profilarr.{{ domain }}
+              - title: qBittorrent
+                url: https://torrent.{{ domain }}
+              - title: qui
+                url: https://qui.{{ domain }}
+              - title: Kavita
+                url: https://kavita.{{ domain }}
+              - title: Mylar
+                url: https://mylar.{{ domain }}
+              - title: Grafana
+                url: https://grafana.{{ domain }}
+              - title: Uptime Kuma
+                url: https://uptime.{{ domain }}
+              - title: Mealie
+                url: https://mealie.{{ domain }}
+              - title: Gotify
+                url: https://notify.{{ domain }}
+              - title: Portracker
+                url: https://ports.{{ domain }}
+              - title: AdGuard Home
+                url: http://{{ ansible_host }}:81
+
+      - size: full
+        widgets:
+          - type: bookmarks
+            groups:
+              - title: Media
+                links:
+                  - title: Jellyfin
+                    icon: si:jellyfin
+                    url: https://watch.{{ domain }}
+                    description: Media server
+                  - title: Overseerr
+                    url: https://seerr.{{ domain }}
+                    description: Media requests
+                  - title: Kavita
+                    url: https://kavita.{{ domain }}
+                    description: Comics / manga / ebooks reader
+                  - title: Mylar
+                    url: https://mylar.{{ domain }}
+                    description: Comic book automation
+
+              - title: Downloads & Automation
+                links:
+                  - title: Sonarr
+                    icon: si:sonarr
+                    url: https://sonarr.{{ domain }}
+                    description: TV automation
+                  - title: Radarr
+                    icon: si:radarr
+                    url: https://radarr.{{ domain }}
+                    description: Movie automation
+                  - title: Prowlarr
+                    icon: si:prowlarr
+                    url: https://prowlarr.{{ domain }}
+                    description: Indexer manager
+                  - title: Profilarr
+                    url: https://profilarr.{{ domain }}
+                    description: Quality profile sync for *arr apps
+                  - title: qBittorrent
+                    icon: si:qbittorrent
+                    url: https://torrent.{{ domain }}
+                    description: Torrent client
+                  - title: qui
+                    url: https://qui.{{ domain }}
+                    description: qBittorrent WebUI alternative
+
+              - title: Monitoring
+                links:
+                  - title: Grafana
+                    icon: si:grafana
+                    url: https://grafana.{{ domain }}
+                    description: Dashboards (Prometheus + Loki)
+                  - title: Uptime Kuma
+                    url: https://uptime.{{ domain }}
+                    description: Uptime monitoring
+
+              - title: Utilities
+                links:
+                  - title: Mealie
+                    url: https://mealie.{{ domain }}
+                    description: Recipe manager
+                  - title: Gotify
+                    url: https://notify.{{ domain }}
+                    description: Push notifications
+                  - title: Portracker
+                    url: https://ports.{{ domain }}
+                    description: Docker port tracker
+
+              - title: Network / Infra
+                links:
+                  - title: AdGuard Home
+                    icon: si:adguard
+                    url: http://{{ ansible_host }}:81
+                    description: Network-wide DNS & ad blocking
