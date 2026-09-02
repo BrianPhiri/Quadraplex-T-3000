@@ -48,7 +48,7 @@ utility_stack:
     portracker: "latest"
     mealie: "v3.24.0"
     n8n:
-      app: "1.120.3"
+      app: "1.123.76"
       postgres: "17-alpine"
 
 
