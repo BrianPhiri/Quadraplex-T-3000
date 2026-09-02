@@ -22,7 +22,6 @@ dns_stack:
     adguard_home: "latest"
     cadvisor: "latest"
     node_exporter: "latest"
-    netbird: "latest"
 
 # Service configuration
 dns_services:
@@ -37,8 +36,3 @@ dns_services:
     http: 81
     https: 8443
     version: "{{ core_stack.versions.adguard_home | default('latest') }}"
-  netbird:
-    enabled: false
-    version: "{{ core_stack.versions.netbird | default('latest') }}"
-    hostname: dns
-    setup_key: "{{ netbird_setup_key | default('') }}"

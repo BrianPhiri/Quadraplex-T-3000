@@ -44,11 +44,6 @@ backup_services:
       database: immich
       user: immich
       container: immich_postgres
-    - name: n8n
-      stack: utility
-      database: n8n
-      user: n8n
-      container: n8n_postgres
     - name: nextcloud
       stack: utility
       database: nextcloud
@@ -70,10 +65,6 @@ backup_services:
       stack: utility
       path: "/opt/utility-stack/data/uptime_kuma/kuma.db"
       container: uptime_kuma
-    - name: vaultwarden
-      stack: utility
-      path: "/opt/utility-stack/data/vaultwarden/db.sqlite3"
-      container: vaultwarden
     - name: sonarr
       stack: media
       path: "/opt/media-stack/configs/sonarr/sonarr.db"

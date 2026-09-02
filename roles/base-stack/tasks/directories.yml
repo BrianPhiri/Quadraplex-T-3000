@@ -31,7 +31,7 @@
   loop: "{{ stack_services }}"
   when:
     - services[item].enabled | default(true)
-    - item in ['seerr', 'sonarr', 'radarr', 'prowlarr', 'lidarr', 'bazarr']
+    - item in ['seerr', 'sonarr', 'radarr', 'prowlarr', 'bazarr']
 
 - name: Create service-specific data directories
   file:

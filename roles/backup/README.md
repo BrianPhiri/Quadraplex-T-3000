@@ -16,12 +16,11 @@ Comprehensive backup and restore system for Quadraplex-T-3000 infrastructure.
 
 ### PostgreSQL Databases (Hourly)
 - Immich (media stack)
-- N8N (utility stack)
 - Nextcloud (utility stack)
 - Boards (utility stack)
 
 ### SQLite Databases (Daily)
-- Grafana, Uptime Kuma, Vaultwarden (utility stack)
+- Grafana, Uptime Kuma (utility stack)
 - Sonarr, Radarr, Prowlarr, Jellyfin, Kavita (media stack)
 
 ### Configurations (Daily)

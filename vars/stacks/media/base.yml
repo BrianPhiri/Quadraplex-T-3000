@@ -35,21 +35,16 @@ media_stack:
     seerr: "latest"
     sonarr: "latest"
     radarr: "latest"
-    lidarr: "latest"
     prowlarr: "latest"
     bazarr: "latest"
     qbittorrent: "latest"
     releasarr: "latest"
-    suggestarr: "latest"
     kavita: "latest"
-    boxarr: "latest"
     huntarr: "latest"
     filebrowser: "v2-s6"
     mylar: "latest"
-    netbird: "latest"
     node_exporter: "latest"
     cadvisor: "latest"
-    jellyfin_vue: "unstable"
     immich: "v2.3.1"
     freshrss: "latest"
     calibre: "latest"
@@ -118,16 +113,6 @@ media_services:
       enabled: true
       host: "watch"
       domain: "{{ domain }}"
-  jellyfin_vue:
-    enabled: false
-    port: 88
-    version: "{{ media_stack.versions.jellyfin_vue | default('unstable') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: false
-      host: "tv"
-      domain: "{{ domain }}"
   bazarr:
     enabled: false
     port: 6767
@@ -139,16 +124,6 @@ media_services:
     traefik:
       enabled: false
       host: "bazarr"
-      domain: "{{ domain }}"
-  lidarr:
-    enabled: false
-    port: 8686
-    version: "{{ media_stack.versions.lidarr | default('latest') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: false
-      host: "lidarr"
       domain: "{{ domain }}"
   releasarr:
     enabled: false
@@ -170,18 +145,6 @@ media_services:
       enabled: false
       host: "huntarr"
       domain: "{{ domain }}"
-  suggestarr:
-    enabled: false
-    port: 5000
-    version: "{{ media_stack.versions.suggestarr | default('latest') }}"
-    dnss:
-      - "{{ custom_dns | default('1.1.1.1') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: false
-      host: "suggestarr"
-      domain: "{{ domain }}"
   qbittorrent:
     enabled: true
     port: 8080
@@ -202,18 +165,6 @@ media_services:
     traefik:
       enabled: true
       host: "kavita"
-      domain: "{{ domain }}"
-  boxarr:
-    enabled: false
-    port: 8888
-    version: "{{ media_stack.versions.boxarr | default('latest') }}"
-    dnss:
-      - "{{ custom_dns | default('1.1.1.1') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: false
-      host: "boxarr"
       domain: "{{ domain }}"
   mylar:
     enabled: true

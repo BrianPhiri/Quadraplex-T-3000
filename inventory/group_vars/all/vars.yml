@@ -24,8 +24,6 @@ domain_final: "{{ my_domain | default(default_domain) }}"
 subdomain_final: "{{ subdomain | default(default_subdomain) }}"
 domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}"
 
-netbird_setup_key: "{{ vault_netbird_setup_key }}"
-
 # Backup configuration
 ansible_project_dir: "/root/ansible"
 
@@ -55,6 +53,5 @@ backup_gotify_token: "{{ vault_backup_gotify_token | default('') }}"
 
 # PostgreSQL database passwords (for backup)
 backup_immich_db_password: "{{ vault_immich_db_password | default('') }}"
-backup_n8n_db_password: "{{ vault_n8n_db_password | default('') }}"
 backup_nextcloud_db_password: "{{ vault_nextcloud_db_password | default('') }}"
 backup_boards_db_password: "{{ vault_boards_db_password | default('') }}"

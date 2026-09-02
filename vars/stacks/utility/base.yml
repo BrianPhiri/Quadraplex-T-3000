@@ -26,28 +26,22 @@ utility_stack:
 
   # Container versions (can be overridden per environment)
   versions:
-    portainer: "2.33.0"
     grafana: "main"
     prometheus: "latest"
     uptime_kuma: "1"
     filebrowser: "v2-s6"
     filestash: "latest"
     adguard_home: "latest"
-    vaultwarden: "latest"
     filestash: "latest"
     glance: "latest"
     cadvisor: "latest"
     node_exporter: "latest"
     loki: "3"
     promtail: "3"
-    netbird: "latest"
     homeassistant: "stable"
     pairdrop: "latest"
     portracker: "latest"
     mealie: "v3.24.0"
-    n8n:
-      app: "1.123.76"
-      postgres: "17-alpine"
 
 
 # Service configuration
@@ -89,11 +83,6 @@ utility_services:
     version: "{{ utility_stack.versions.promtail | default('3') }}"
     networks:
       - traefik_net
-  netbird:
-    enabled: true
-    version: "{{ utility_stack.versions.netbird | default('latest') }}"
-    hostname: media
-    setup_key: "{{ netbird_setup_key | default('') }}"
   pairdrop:
     enabled: false
     version: "{{ utility_stack.versions.pairdrop | default('latest') }}"
@@ -127,15 +116,6 @@ utility_services:
       enabled: true
       host: "home"
       domain: "{{ domain }}"
-  portainer:
-    enabled: false
-    version: "{{ utility_stack.versions.portainer | default('lts') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "portainer"
-      domain: "{{ utility_stack.stack_domain }}"
   uptime_kuma:
     enabled: true
     version: "{{ utility_stack.versions.uptime_kuma | default('1') }}"
@@ -146,15 +126,6 @@ utility_services:
     traefik:
       enabled: true
       host: "uptime"
-      domain: "{{ utility_stack.stack_domain }}"
-  vaultwarden:
-    enabled: false
-    version: "{{ utility_stack.versions.vaultwarden | default('latest') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "vault"
       domain: "{{ utility_stack.stack_domain }}"
   filestash:
     enabled: false
@@ -176,36 +147,6 @@ utility_services:
       enabled: false
       host: "view"
       domain: "{{ utility_stack.stack_domain }}"
-  n8n:
-    enabled: false
-    encryption_key: "{{ vault_n8n_encryption_key | mandatory('vault_n8n_encryption_key must be set in vault.yml before enabling n8n') }}"
-    version: "{{ utility_stack.versions.n8n.app | default('latest') }}"
-    db_version: "{{ utility_stack.versions.n8n.postgres | default('latest') }}"
-    db:
-      user: "carlos"
-      password: "{{ vault_n8n_db_password | mandatory('vault_n8n_db_password must be set in vault.yml before enabling n8n') }}"
-      user_non_root: "barb"
-      password_non_root: "{{ vault_n8n_db_password_non_root | mandatory('vault_n8n_db_password_non_root must be set in vault.yml before enabling n8n') }}"
-      name: "my_n8n"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "n8n"
-      domain: "{{ domain }}"
-  grist:
-    enabled: false
-    version: "{{ utility_stack.versions.gotify | default('latest') }}"
-    secret: "{{ vault_grist_secret | mandatory('vault_grist_secret must be set in vault.yml before enabling grist') }}"
-    email: ""
-    dnss:
-      - "{{ custom_dns | default('1.1.1.1') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "sheets"
-      domain: "{{ domain }}"
   portracker:
     enabled: true
     version: "{{ utility_stack.versions.portracker | default('latest') }}"

@@ -2,9 +2,9 @@
 An overly complicated homelab setup that also acts as documentation and templete for others (only reason it's public).
 It installs **Docker**, configures **Traefik** as a reverse proxy, and orchestrates application stacks including:
 
-- **Media services (Arr stack)** – Radarr, Sonarr, Lidarr, etc.  
+- **Media services (Arr stack)** – Radarr, Sonarr, Prowlarr, etc.  
 - **Monitoring tools** – Prometheus, cAdvisor, Grafana, Uptime Kuma.  
-- **Management utilities** – Portainer, Vaultwarden, and helper services.  
+- **Management utilities** – Gotify, Portracker, Mealie, and helper services.  
 
 All services are grouped into stacks, making it easy to enable or disable specific apps and extend the setup with new deployments.  
 
@@ -74,16 +74,14 @@ Quadraplex-T-3000/
    - Manages TLS, middlewares, and service discovery.  
 
 3. **Media Stack**  
-   - Deploys Radarr, Sonarr, Lidarr, and related services.  
+   - Deploys Radarr, Sonarr, and related services.  
 
 4. **Monitoring & Utilities**  
    - **Prometheus & cAdvisor** – metrics collection.  
    - **Grafana** – dashboards and visualization.  
    - **Uptime Kuma** – uptime monitoring.  
-   - **Portainer** – Docker management UI.  
 
-5. **Secrets & Backup**  
-   - Vaultwarden for secure storage.  
+5. **Backup**  
    - Automated backup and restore playbooks.  
 
 ---
@@ -220,7 +218,7 @@ for the complete guide.
 `make restore SERVICE=grafana STACK=utility DATE=20260425T120000 TARGET=host` - Restore a service from a specific backup.
 `make restore SERVICE=grafana STACK=utility LATEST=true TARGET=host` - Restore the most recent backup.
 `make restore-dry-run SERVICE=grafana STACK=utility TARGET=host` - Preview a restore without applying it.
-`make restore-remote SERVICE=n8n STACK=utility DATE=20260425 TARGET=host` - Restore from the S3 copy.
+`make restore-remote SERVICE=immich STACK=media DATE=20260425 TARGET=host` - Restore from the S3 copy.
 `make restore-list STACK=utility TARGET=host` - List available backups for a stack.
 `make backup-status` / `backup-timers` / `backup-logs TARGET=host` - Check backup health, systemd timers, recent logs.
 `make backup-verify TARGET=host` - Integrity-check dump/db/tarball backups.

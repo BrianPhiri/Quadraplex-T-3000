@@ -80,7 +80,7 @@ restore: ## Restore a service from backup (requires SERVICE, STACK, DATE or use 
 		echo "Error: SERVICE and STACK are required"; \
 		echo "Usage: make restore SERVICE=grafana STACK=utility DATE=20260425T120000"; \
 		echo "   or: make restore SERVICE=grafana STACK=utility LATEST=true"; \
-		echo "   or: make restore SERVICE=n8n STACK=utility DATE=20260425 FROM_S3=true"; \
+		echo "   or: make restore SERVICE=immich STACK=media DATE=20260425 FROM_S3=true"; \
 		exit 1; \
 	fi
 	@echo "Restoring $(SERVICE) from $(STACK) stack on $(TARGET)..."
@@ -182,7 +182,7 @@ backup-help: ## Show detailed backup help
 	@echo "  make restore SERVICE=grafana STACK=utility DATE=20260425T120000 TARGET=host"
 	@echo "  make restore SERVICE=grafana STACK=utility LATEST=true TARGET=host"
 	@echo "  make restore-dry-run SERVICE=grafana STACK=utility DATE=20260425 TARGET=host"
-	@echo "  make restore-remote SERVICE=n8n STACK=utility DATE=20260425 TARGET=host"
+	@echo "  make restore-remote SERVICE=immich STACK=media DATE=20260425 TARGET=host"
 	@echo ""
 	@echo "Monitoring:"
 	@echo "  make backup-status TARGET=host          Show backup summary"
