@@ -32,8 +32,6 @@ utility_stack:
     uptime_kuma: "1"
     filebrowser: "v2-s6"
     filestash: "latest"
-    crowdsec: "latjst"
-    wireshark: "latest"
     adguard_home: "latest"
     vaultwarden: "latest"
     filestash: "latest"
