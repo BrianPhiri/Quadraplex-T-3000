@@ -16,7 +16,7 @@ group_id: 987
 
 timezone: "Africa/Nairobi"
 
-custom_dns: "100.80.220.126"
+custom_dns: "192.168.100.26"
 
 default_domain: "example.com"
 default_subdomain: "traefik"
