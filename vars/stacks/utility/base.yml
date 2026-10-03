@@ -32,7 +32,6 @@ utility_stack:
     filebrowser: "v2-s6"
     filestash: "latest"
     adguard_home: "latest"
-    filestash: "latest"
     glance: "latest"
     cadvisor: "latest"
     node_exporter: "latest"
