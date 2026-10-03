@@ -45,6 +45,7 @@ utility_stack:
     syncthing: "2.1.3"
     rsshub: "latest"
     searxng: "latest"
+    kitchenowl: "v0.7.10"
 
 
 # Service configuration
@@ -214,4 +215,16 @@ utility_services:
     traefik:
       enabled: true
       host: "search"
+      domain: "{{ utility_stack.stack_domain }}"
+  kitchenowl:
+    enabled: true
+    # https://docs.kitchenowl.org/latest/self-hosting/ - single all-in-one image,
+    # SQLite in /data. Ingredient parsing (LLM_MODEL etc.) deliberately not set up yet.
+    version: "{{ utility_stack.versions.kitchenowl | default('v0.7.10') }}"
+    jwt_secret_key: "{{ vault_kitchenowl_jwt_secret_key }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "kitchenowl"
       domain: "{{ utility_stack.stack_domain }}"

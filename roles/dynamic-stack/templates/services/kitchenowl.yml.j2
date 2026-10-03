@@ -1,0 +1,38 @@
+kitchenowl:
+  image: docker.io/tombursch/kitchenowl:{{ services.kitchenowl.version }}
+  container_name: kitchenowl
+  restart: unless-stopped
+  environment:
+    - TZ={{ stack_config.timezone }}
+    - JWT_SECRET_KEY={{ services.kitchenowl.jwt_secret_key }}
+  volumes:
+    - {{ stack_config.data_path }}/kitchenowl:/data
+{% if services.kitchenowl.port is defined %}
+  ports:
+    - "{{ services.kitchenowl.port }}:8080"
+{% endif %}
+{% if services.kitchenowl.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.kitchenowl.rule=Host(`{{ services.kitchenowl.traefik.host }}.{{ services.kitchenowl.traefik.domain }}`)
+    - traefik.http.routers.kitchenowl.entrypoints=https
+    - traefik.http.routers.kitchenowl.tls=true
+    - traefik.http.routers.kitchenowl-http.rule=Host(`{{ services.kitchenowl.traefik.host }}.{{ services.kitchenowl.traefik.domain }}`)
+    - traefik.http.routers.kitchenowl-http.entrypoints=http
+    - traefik.http.routers.kitchenowl-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.kitchenowl.loadbalancer.server.port=8080
+    - traefik.http.services.kitchenowl.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.kitchenowl.networks is defined %}
+  networks:
+{% for network in services.kitchenowl.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.kitchenowl.dnss is defined %}
+  dns:
+{% for dns in services.kitchenowl.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}
