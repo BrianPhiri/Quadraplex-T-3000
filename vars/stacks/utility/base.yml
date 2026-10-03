@@ -42,6 +42,9 @@ utility_stack:
     pairdrop: "latest"
     portracker: "latest"
     mealie: "v3.24.0"
+    syncthing: "2.1.3"
+    rsshub: "latest"
+    searxng: "latest"
 
 
 # Service configuration
@@ -168,4 +171,47 @@ utility_services:
     traefik:
       enabled: true
       host: "mealie"
+      domain: "{{ utility_stack.stack_domain }}"
+  syncthing:
+    enabled: true
+    # Sync protocol + local discovery ports must be exposed directly on the host -
+    # they're not HTTP, so Traefik can't route them. Only the web UI goes through Traefik.
+    sync_port: 22000
+    discovery_port: 21027
+    version: "{{ utility_stack.versions.syncthing | default('2.1.3') }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "sync"
+      domain: "{{ utility_stack.stack_domain }}"
+  rsshub:
+    enabled: false
+    # No Redis sidecar - RSSHub falls back to an in-memory cache with no extra
+    # container/volume to manage, matching this stack's single-container services.
+    version: "{{ utility_stack.versions.rsshub | default('latest') }}"
+    cache_expire: 3600
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "rss"
+      domain: "{{ utility_stack.stack_domain }}"
+  searxng:
+    enabled: true
+    # https://docs.searxng.org/admin/installation-docker.html
+    # Unlike the linuxserver-style images elsewhere in this stack, the official
+    # searxng/searxng image has no PUID/PGID support - its entrypoint always
+    # chowns /etc/searxng and /var/cache/searxng to its own baked-in internal
+    # user (uid/gid 977) on container start. base-stack's verify.yml excludes
+    # "searxng" by name from its data-directory ownership assertion for this
+    # reason (that role can't key off a per-service flag defined here - see
+    # the comment in verify.yml).
+    version: "{{ utility_stack.versions.searxng | default('latest') }}"
+    secret_key: "{{ vault_searxng_secret_key }}"
+    networks:
+      - traefik_net
+    traefik:
+      enabled: true
+      host: "search"
       domain: "{{ utility_stack.stack_domain }}"

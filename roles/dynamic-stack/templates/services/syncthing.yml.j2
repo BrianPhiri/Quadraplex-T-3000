@@ -1,0 +1,42 @@
+syncthing:
+  image: lscr.io/linuxserver/syncthing:{{ services.syncthing.version }}
+  container_name: syncthing
+  restart: unless-stopped
+  environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
+    - TZ={{ stack_config.timezone }}
+  volumes:
+    - {{ stack_config.config_path }}/syncthing:/config
+    - {{ stack_config.data_path }}/syncthing:/data1
+  # 22000/tcp+udp (sync protocol) and 21027/udp (local discovery) are exposed
+  # directly on the host - they aren't HTTP, so they can't go through Traefik.
+  ports:
+    - "{{ services.syncthing.sync_port | default('22000') }}:22000/tcp"
+    - "{{ services.syncthing.sync_port | default('22000') }}:22000/udp"
+    - "{{ services.syncthing.discovery_port | default('21027') }}:21027/udp"
+{% if services.syncthing.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.syncthing.rule=Host(`{{ services.syncthing.traefik.host }}.{{ services.syncthing.traefik.domain }}`)
+    - traefik.http.routers.syncthing.entrypoints=https
+    - traefik.http.routers.syncthing.tls=true
+    - traefik.http.routers.syncthing-http.rule=Host(`{{ services.syncthing.traefik.host }}.{{ services.syncthing.traefik.domain }}`)
+    - traefik.http.routers.syncthing-http.entrypoints=http
+    - traefik.http.routers.syncthing-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.syncthing.loadbalancer.server.port=8384
+    - traefik.http.services.syncthing.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.syncthing.networks is defined %}
+  networks:
+{% for network in services.syncthing.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.syncthing.dnss is defined %}
+  dns:
+{% for dns in services.syncthing.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

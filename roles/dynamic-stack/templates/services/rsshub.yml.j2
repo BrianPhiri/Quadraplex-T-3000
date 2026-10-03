@@ -1,0 +1,39 @@
+rsshub:
+  image: diygod/rsshub:{{ services.rsshub.version }}
+  container_name: rsshub
+  restart: unless-stopped
+  environment:
+    - NODE_ENV=production
+    - CACHE_EXPIRE={{ services.rsshub.cache_expire | default(3600) }}
+{% if services.rsshub.traefik.enabled | default(false) %}
+    - BASE_URL=https://{{ services.rsshub.traefik.host }}.{{ services.rsshub.traefik.domain }}
+{% endif %}
+{% if services.rsshub.port is defined %}
+  ports:
+    - "{{ services.rsshub.port }}:1200"
+{% endif %}
+{% if services.rsshub.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.rsshub.rule=Host(`{{ services.rsshub.traefik.host }}.{{ services.rsshub.traefik.domain }}`)
+    - traefik.http.routers.rsshub.entrypoints=https
+    - traefik.http.routers.rsshub.tls=true
+    - traefik.http.routers.rsshub-http.rule=Host(`{{ services.rsshub.traefik.host }}.{{ services.rsshub.traefik.domain }}`)
+    - traefik.http.routers.rsshub-http.entrypoints=http
+    - traefik.http.routers.rsshub-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.rsshub.loadbalancer.server.port=1200
+    - traefik.http.services.rsshub.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.rsshub.networks is defined %}
+  networks:
+{% for network in services.rsshub.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.rsshub.dnss is defined %}
+  dns:
+{% for dns in services.rsshub.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

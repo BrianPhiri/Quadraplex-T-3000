@@ -1,0 +1,41 @@
+searxng:
+  image: docker.io/searxng/searxng:{{ services.searxng.version }}
+  container_name: searxng
+  restart: unless-stopped
+  environment:
+    - SEARXNG_SECRET={{ services.searxng.secret_key }}
+{% if services.searxng.traefik.enabled | default(false) %}
+    - SEARXNG_BASE_URL=https://{{ services.searxng.traefik.host }}.{{ services.searxng.traefik.domain }}/
+{% endif %}
+  volumes:
+    - {{ stack_config.config_path }}/searxng:/etc/searxng
+    - {{ stack_config.data_path }}/searxng:/var/cache/searxng
+{% if services.searxng.port is defined %}
+  ports:
+    - "{{ services.searxng.port }}:8080"
+{% endif %}
+{% if services.searxng.traefik.enabled | default(false) %}
+  labels:
+    - traefik.enable=true
+    - traefik.http.routers.searxng.rule=Host(`{{ services.searxng.traefik.host }}.{{ services.searxng.traefik.domain }}`)
+    - traefik.http.routers.searxng.entrypoints=https
+    - traefik.http.routers.searxng.tls=true
+    - traefik.http.routers.searxng-http.rule=Host(`{{ services.searxng.traefik.host }}.{{ services.searxng.traefik.domain }}`)
+    - traefik.http.routers.searxng-http.entrypoints=http
+    - traefik.http.routers.searxng-http.middlewares=redirect-to-https
+    - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    - traefik.http.services.searxng.loadbalancer.server.port=8080
+    - traefik.http.services.searxng.loadbalancer.server.scheme=http
+{% endif %}
+{% if services.searxng.networks is defined %}
+  networks:
+{% for network in services.searxng.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}
+{% if services.searxng.dnss is defined %}
+  dns:
+{% for dns in services.searxng.dnss %}
+    - {{ dns }}
+{% endfor %}
+{% endif %}

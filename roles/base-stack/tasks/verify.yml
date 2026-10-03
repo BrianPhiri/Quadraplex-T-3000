@@ -51,6 +51,13 @@
   when:
     - services[item].enabled | default(true)
     - data_dir_stats.results[index].stat.exists
+    # searxng's official image has no PUID/PGID support - its entrypoint always
+    # chowns its data dirs to a baked-in internal user (uid/gid 977), so it can
+    # never match stack_user_id here. (Note: `services` in this role is really
+    # just the list of enabled service names, not the config dict - see
+    # dynamic-stack/tasks/main.yml - so this has to be a plain name check
+    # rather than a per-service flag looked up off `services[item]`.)
+    - item not in ['searxng']
 
 - name: Check systemd service status
   systemd:
