@@ -215,7 +215,7 @@ media_services:
       host: "calibre"
       domain: "{{ domain }}"
   audiobookshelf:
-    enabled: false
+    enabled: true
     version: "{{ media_stack.versions.audiobookshelf | default('latest') }}"
     networks:
       - traefik_net
