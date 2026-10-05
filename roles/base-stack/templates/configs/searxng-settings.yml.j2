@@ -1,0 +1,11 @@
+# Managed by Ansible. Only overrides; everything else comes from SearXNG's defaults.
+# secret_key comes from the SEARXNG_SECRET env var (see services/searxng.yml.j2).
+use_default_settings: true
+
+server:
+  limiter: false   # private instance behind NetBird; Funkwe's Go client would trip botdetection
+
+search:
+  formats:
+    - html
+    - json   # Funkwe (internal/agent/searxng.go) calls /search?format=json
