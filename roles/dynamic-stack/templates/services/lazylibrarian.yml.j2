@@ -13,6 +13,7 @@ lazylibrarian:
     - {{ stack_config.config_path }}/lazylibrarian:/config
     - {{ stack_config.downloads_path }}:/downloads
     - {{ stack_config.media_path }}/books:/books
+    - {{ stack_config.media_path }}/audiobooks:/audiobooks
 {% if services.lazylibrarian.port is defined %}
   ports:
     - "{{ services.lazylibrarian.port }}:5299"
