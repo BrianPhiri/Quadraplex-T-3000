@@ -224,7 +224,7 @@ media_services:
       host: "audiobooks"
       domain: "{{ domain }}"
   lazylibrarian:
-    enabled: false
+    enabled: true
     version: "{{ media_stack.versions.lazylibrarian | default('latest') }}"
     networks:
       - traefik_net
