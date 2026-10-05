@@ -21,3 +21,7 @@
     stack_config: "{{ stack }}"
     stack_systemd_template: "{{ stack_role_path }}/templates/systemd/stack.service.j2"
     services: "{{ enabled_services }}"
+
+- name: LazyLibrarian settings
+  include_tasks: lazylibrarian.yml
+  when: "'lazylibrarian' in enabled_services and (services.lazylibrarian.traefik.enabled | default(false))"

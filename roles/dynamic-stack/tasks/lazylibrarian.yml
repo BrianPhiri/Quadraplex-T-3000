@@ -1,0 +1,33 @@
+---
+# LazyLibrarian sits behind Traefik, which terminates HTTPS. Without http_proxy it builds its own
+# redirects (e.g. to /auth/login) as http://; with it, CherryPy honours Traefik's
+# X-Forwarded-Proto and redirects stay on https://. config.ini is the app's own file, so this
+# only edits that one line, and only while the container is stopped (it may rewrite the file
+# on shutdown). Skipped until LazyLibrarian has created its config on first start.
+- name: LazyLibrarian - config.ini
+  stat:
+    path: "{{ stack.config_path }}/lazylibrarian/config.ini"
+  register: lazylibrarian_config
+
+- name: LazyLibrarian - honour Traefik's X-Forwarded-Proto
+  when: lazylibrarian_config.stat.exists
+  block:
+    - name: LazyLibrarian - check http_proxy
+      lineinfile:
+        path: "{{ stack.config_path }}/lazylibrarian/config.ini"
+        regexp: '^http_proxy\s*='
+        line: "http_proxy = True"
+        insertafter: '^\[WEBSERVER\]'
+      check_mode: true
+      register: lazylibrarian_proxy
+
+    - name: LazyLibrarian - set http_proxy (stopped while editing)
+      when: lazylibrarian_proxy is changed
+      block:
+        - command: docker stop lazylibrarian
+        - lineinfile:
+            path: "{{ stack.config_path }}/lazylibrarian/config.ini"
+            regexp: '^http_proxy\s*='
+            line: "http_proxy = True"
+            insertafter: '^\[WEBSERVER\]'
+        - command: docker start lazylibrarian
