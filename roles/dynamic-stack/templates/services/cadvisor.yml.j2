@@ -1,5 +1,5 @@
 cadvisor:
-  image: gcr.io/cadvisor/cadvisor:{{ services.cadvisor.version }}
+  image: ghcr.io/google/cadvisor:{{ services.cadvisor.version }}
   container_name: cadvisor
   environment:
     - PUID={{ stack_config.user_id }}

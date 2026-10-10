@@ -1,6 +1,6 @@
 glance:
   container_name: glance
-  image: glanceapp/glance
+  image: glanceapp/glance:{{ services.glance.version }}
   restart: unless-stopped
   environment:
     - PUID={{ stack_config.user_id }}

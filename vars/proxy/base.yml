@@ -14,7 +14,7 @@ proxy_stack:
   network_name: "traefik_net"
 
   versions:
-    traefik: "v3.6.13"  # Latest stable with updated Docker client
+    traefik: "v3.7.14"
 
 # Service configuration
 proxy_services:

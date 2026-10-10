@@ -25,7 +25,7 @@ backup_rclone_bin: >-
   docker run --rm
   -v {{ backup_rclone_config_dir }}:/config/rclone
   -v {{ backup_base_dir }}:{{ backup_base_dir }}
-  rclone/rclone:latest
+  rclone/rclone:1.75.2
 
 # Compression settings
 backup_compression_level: 6  # gzip compression level (1-9)

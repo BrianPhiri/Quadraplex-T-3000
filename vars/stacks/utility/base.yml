@@ -26,25 +26,26 @@ utility_stack:
 
   # Container versions (can be overridden per environment)
   versions:
-    grafana: "main"
-    prometheus: "latest"
-    uptime_kuma: "1"
+    grafana: "13.2.3"
+    prometheus: "v3.15.0"
+    uptime_kuma: "1.23.17"
     filebrowser: "v2-s6"
     filestash: "latest"
     adguard_home: "latest"
-    glance: "latest"
-    cadvisor: "latest"
-    node_exporter: "latest"
-    loki: "3"
-    promtail: "3"
+    glance: "v0.8.6"
+    cadvisor: "v0.60.6"
+    node_exporter: "v1.12.1"
+    loki: "3.7.8"
+    promtail: "3.6.8"
     homeassistant: "stable"
     pairdrop: "latest"
-    portracker: "latest"
-    mealie: "v3.24.0"
-    syncthing: "2.1.3"
+    portracker: "1.3.14"
+    mealie: "v3.28.0"
+    syncthing: "v2.1.6-ls231"
     rsshub: "latest"
-    searxng: "latest"
+    searxng: "2026.10.9-f4822b3fc"
     kitchenowl: "v0.7.10"
+    gotify: "3.1.1"
 
 
 # Service configuration

@@ -16,7 +16,7 @@
 
 - name: Pull rclone Docker image
   when: backup_s3_enabled
-  ansible.builtin.command: docker pull rclone/rclone:latest
+  ansible.builtin.command: docker pull rclone/rclone:1.75.2
   register: rclone_pull
   changed_when: "'Downloaded newer image' in rclone_pull.stdout"
   tags:

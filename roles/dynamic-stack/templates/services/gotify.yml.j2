@@ -1,5 +1,5 @@
 gotify:
-  image: gotify/server
+  image: gotify/server:{{ services.gotify.version }}
   container_name: gotify
   restart: unless-stopped
 {% if services.gotify.port is defined %}

@@ -1,5 +1,5 @@
 adguardhome:
-  image: adguard/adguardhome
+  image: adguard/adguardhome:{{ services.adguard_home.version }}
   container_name: adguardhome
   restart: unless-stopped
   volumes:
