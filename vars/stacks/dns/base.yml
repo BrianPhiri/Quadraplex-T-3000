@@ -27,12 +27,12 @@ dns_stack:
 dns_services:
   cadvisor:
     enabled: false
-    version: "{{ core_stack.versions.cadvisor | default('latest') }}"
+    version: "{{ dns_stack.versions.cadvisor | default('latest') }}"
   node_exporter:
     enabled: false
-    version: "{{ core_stack.versions.node_exporter | default('latest') }}"
+    version: "{{ dns_stack.versions.node_exporter | default('latest') }}"
   adguard_home:
     enabled: true
     http: 81
     https: 8443
-    version: "{{ core_stack.versions.adguard_home | default('latest') }}"
+    version: "{{ dns_stack.versions.adguard_home | default('latest') }}"
