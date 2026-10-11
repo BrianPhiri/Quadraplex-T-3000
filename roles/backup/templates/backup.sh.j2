@@ -1,0 +1,104 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Usage: quadraplex-backup [daily|s3]
+#   daily - per-stack tarball of configs + data (SQLite copied safely via .backup,
+#           Postgres via pg_dumpall), then local retention, then copy to S3 if enabled.
+#   s3    - only copy {{ backup_base_dir }} to S3.
+# Restore a stack: stop it, then `tar -xzf <stack>_<ts>.tar.gz -C /opt/<stack dir>`.
+set -uo pipefail
+
+BASE="{{ backup_base_dir }}"
+TS=$(date +%Y%m%dT%H%M%S)
+FAILED=()
+
+log() { echo "[$(date '+%F %T')] $*"; }
+
+notify() {
+{% if backup_gotify_enabled %}
+  curl -s -X POST "{{ backup_gotify_url }}/message" -H "X-Gotify-Key: {{ backup_gotify_token }}" \
+    -F "title=$1" -F "message=$2" -F "priority=8" >/dev/null || true
+{% else %}
+  :
+{% endif %}
+}
+
+backup_stack() {
+  local name=$1 dir=$2
+  [ -d "$dir" ] || { log "skip $name: $dir missing"; return; }
+  local stage="$BASE/.staging/$name" out="$BASE/$name/${name}_${TS}.tar.gz"
+  rm -rf "$stage"; mkdir -p "$stage" "$BASE/$name"
+
+  # Everything except live SQLite files and regenerable caches/logs/metrics.
+  rsync -a --no-specials --no-devices \
+{% for e in backup_excludes %}
+    --exclude='{{ e }}' \
+{% endfor %}
+    --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.sqlite*' \
+    "$dir/" "$stage/" || { FAILED+=("$name rsync"); return; }
+
+  # Consistent copies of every SQLite DB (safe while the app is running). Files sqlite3
+  # can't open (BoltDB *.db, custom tokenizers) are copied as-is instead.
+  while IFS= read -r -d '' db; do
+    local rel=${db#"$dir"/}
+    mkdir -p "$stage/$(dirname "$rel")"
+    sqlite3 "$db" ".backup '$stage/$rel'" 2>/dev/null \
+      && [ "$(sqlite3 "$stage/$rel" 'PRAGMA quick_check;' 2>/dev/null)" = ok ] \
+      || { cp -p "$db" "$stage/$rel" && log "note: copied $rel as a plain file (not readable by sqlite3)"; } \
+      || FAILED+=("$name:$rel")
+  done < <(find "$dir" \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -type f \
+{% for e in backup_excludes %}
+             -not -path '*/{{ e }}/*' -not -name '{{ e }}' \
+{% endfor %}
+             -print0)
+
+  tar -czf "$out" -C "$stage" . && tar -tzf "$out" >/dev/null \
+    && log "ok $name $(du -h "$out" | cut -f1)" \
+    || FAILED+=("$name tar")
+  chmod 600 "$out" 2>/dev/null
+  rm -rf "$stage"
+}
+
+backup_postgres() {
+  # Any running Postgres container, whatever stack it belongs to.
+  docker ps --format '{% raw %}{{.Names}} {{.Image}}{% endraw %}' | awk '$2 ~ /postgres/ {print $1}' | while read -r c; do
+    local user out="$BASE/postgres/${c}_${TS}.sql.gz"
+    user=$(docker exec "$c" printenv POSTGRES_USER 2>/dev/null || echo postgres)
+    mkdir -p "$BASE/postgres"
+    docker exec "$c" pg_dumpall -U "$user" | gzip > "$out" && [ -s "$out" ] \
+      && log "ok postgres $c $(du -h "$out" | cut -f1)" \
+      || { log "WARN postgres dump failed: $c"; echo "$c" >> "$BASE/.pg_failed"; }
+  done
+  [ -f "$BASE/.pg_failed" ] && { FAILED+=("postgres: $(tr '\n' ' ' < "$BASE/.pg_failed")"); rm -f "$BASE/.pg_failed"; }
+}
+
+sync_s3() {
+{% if backup_s3_enabled %}
+  # copy (not sync): S3 keeps {{ backup_retention_remote }} days even after local copies age out.
+  local remote="{{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/"
+  {{ backup_rclone_bin }} copy "$BASE/" "$remote" --exclude '.staging/**' --log-level NOTICE \
+    && {{ backup_rclone_bin }} delete "$remote" --min-age {{ backup_retention_remote }}d --log-level NOTICE \
+    && log "ok s3 sync" || FAILED+=("s3 sync")
+{% else %}
+  log "s3 disabled"
+{% endif %}
+}
+
+case "${1:-daily}" in
+  daily)
+{% for s in backup_stacks %}
+    backup_stack {{ s.name }} {{ s.path }}
+{% endfor %}
+    backup_postgres
+    find "$BASE" -mindepth 2 -type f -mtime +{{ backup_retention_local }} -not -path '*/.staging/*' -delete
+    sync_s3
+    ;;
+  s3) sync_s3 ;;
+  *) echo "usage: $0 [daily|s3]"; exit 2 ;;
+esac
+
+if [ -n "${FAILED[*]-}" ]; then
+  log "FAILED: ${FAILED[*]}"
+  notify "Backup failed on $(hostname)" "${FAILED[*]}"
+  exit 1
+fi
+log "done ($(du -sh "$BASE" | cut -f1) total)"

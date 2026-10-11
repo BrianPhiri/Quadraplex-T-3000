@@ -1,122 +1,69 @@
 ---
-# Main backup role tasks
+# Backups are done by one script on the host (templates/backup.sh.j2), run daily by a
+# systemd timer. Ansible only installs it, or runs it on demand - the host needs
+# neither Ansible nor this repo.
 
-- name: Install required packages
-  ansible.builtin.package:
-    name:
-      - rsync
-      - gzip
-      - tar
-      - postgresql-client
-      - sqlite3
-    state: present
-  tags:
-    - backup
-    - backup-setup
+- name: Backup setup
+  when: backup_action in ['setup', 'timers']
+  tags: [backup, backup-setup]
+  block:
+    - name: Install required packages
+      ansible.builtin.package:
+        name: [rsync, sqlite3]
+        state: present
 
-- name: Pull rclone Docker image
-  when: backup_s3_enabled
-  ansible.builtin.command: docker pull rclone/rclone:1.75.2
-  register: rclone_pull
-  changed_when: "'Downloaded newer image' in rclone_pull.stdout"
-  tags:
-    - backup
-    - backup-setup
+    - name: Pull rclone Docker image
+      when: backup_s3_enabled
+      ansible.builtin.command: docker pull rclone/rclone:1.75.2
+      register: rclone_pull
+      changed_when: "'Downloaded newer image' in rclone_pull.stdout"
 
-- name: Create backup directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0700'
-    owner: root
-    group: root
-  loop:
-    - "{{ backup_base_dir }}"
-    - "{{ backup_base_dir }}/proxy"
-    - "{{ backup_base_dir }}/proxy/databases"
-    - "{{ backup_base_dir }}/proxy/configs"
-    - "{{ backup_base_dir }}/dns"
-    - "{{ backup_base_dir }}/dns/databases"
-    - "{{ backup_base_dir }}/dns/configs"
-    - "{{ backup_base_dir }}/media"
-    - "{{ backup_base_dir }}/media/databases"
-    - "{{ backup_base_dir }}/media/configs"
-    - "{{ backup_base_dir }}/media/data"
-    - "{{ backup_base_dir }}/utility"
-    - "{{ backup_base_dir }}/utility/databases"
-    - "{{ backup_base_dir }}/utility/configs"
-    - "{{ backup_base_dir }}/utility/data"
-    - "{{ backup_rclone_config_dir }}"
-  tags:
-    - backup
-    - backup-setup
+    - name: Create backup directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+      loop:
+        - "{{ backup_base_dir }}"
+        - "{{ backup_rclone_config_dir }}"
 
-- name: Configure rclone for S3
-  when: backup_s3_enabled
-  ansible.builtin.template:
-    src: rclone.conf.j2
-    dest: "{{ backup_rclone_config_dir }}/rclone.conf"
-    mode: '0600'
-    owner: root
-    group: root
-  no_log: true
-  tags:
-    - backup
-    - backup-setup
-    - backup-config
+    - name: Configure rclone for S3
+      when: backup_s3_enabled
+      ansible.builtin.template:
+        src: rclone.conf.j2
+        dest: "{{ backup_rclone_config_dir }}/rclone.conf"
+        mode: '0600'
+        owner: root
+        group: root
+      no_log: true
 
-- name: Include PostgreSQL backup tasks
-  ansible.builtin.include_tasks: postgres-backup.yml
-  when: backup_action == 'postgres' or backup_action == 'all'
-  tags:
-    - backup
-    - backup-postgres
+    - name: Install backup script
+      ansible.builtin.template:
+        src: backup.sh.j2
+        dest: /usr/local/bin/quadraplex-backup
+        mode: '0700'
+        owner: root
+        group: root
 
-- name: Include SQLite backup tasks
-  ansible.builtin.include_tasks: sqlite-backup.yml
-  when: backup_action == 'sqlite' or backup_action == 'all' or backup_action == 'daily'
-  tags:
-    - backup
-    - backup-sqlite
+    - name: Deploy systemd timers
+      ansible.builtin.include_tasks: systemd-timers.yml
 
-- name: Include config backup tasks
-  ansible.builtin.include_tasks: config-backup.yml
-  when: backup_action == 'config' or backup_action == 'all' or backup_action == 'daily'
-  tags:
-    - backup
-    - backup-config
+- name: Run backup ({{ backup_action }})
+  when: backup_action in ['daily', 'all', 's3']
+  ansible.builtin.command: /usr/local/bin/quadraplex-backup {{ 's3' if backup_action == 's3' else 'daily' }}
+  register: backup_run
+  changed_when: true
+  tags: [backup]
 
-- name: Include data backup tasks
-  ansible.builtin.include_tasks: data-backup.yml
-  when: backup_action == 'data' or backup_action == 'all' or backup_action == 'daily'
-  tags:
-    - backup
-    - backup-data
-
-- name: Include retention management tasks
-  ansible.builtin.include_tasks: retention.yml
-  when: backup_action == 'retention' or backup_action == 'all' or backup_action == 'daily'
-  tags:
-    - backup
-    - backup-retention
-
-- name: Include S3 sync tasks
-  ansible.builtin.include_tasks: s3-sync.yml
-  when: backup_s3_enabled and (backup_action == 's3' or backup_action == 'all')
-  tags:
-    - backup
-    - backup-s3
+- name: Show backup output
+  when: backup_run is not skipped
+  ansible.builtin.debug:
+    var: backup_run.stdout_lines
+  tags: [backup]
 
 - name: Include restore tasks
   ansible.builtin.include_tasks: restore.yml
   when: backup_action == 'restore'
-  tags:
-    - restore
-
-- name: Deploy systemd timers
-  ansible.builtin.include_tasks: systemd-timers.yml
-  when: backup_action == 'setup' or backup_action == 'timers'
-  tags:
-    - backup
-    - backup-setup
-    - backup-timers
+  tags: [restore]

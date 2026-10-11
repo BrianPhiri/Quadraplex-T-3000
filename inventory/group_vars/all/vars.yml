@@ -24,14 +24,10 @@ domain_final: "{{ my_domain | default(default_domain) }}"
 subdomain_final: "{{ subdomain | default(default_subdomain) }}"
 domain: "{{ (subdomain_final | default('') | length > 0) | ternary(subdomain_final ~ '.', '') }}{{ domain_final }}"
 
-# Backup configuration
-ansible_project_dir: "/root/ansible"
-
-# Backup settings
-backup_base_dir: "/backup"
+# Backup settings - on the media disk: off the (small) root disk, and survives a root-disk failure
+backup_base_dir: "/mnt/media/backups"
 backup_retention_local: 14
 backup_retention_remote: 90
-backup_compression_level: 6
 
 # S3 backup configuration (credentials in vault.yml)
 backup_s3_enabled: true
@@ -51,7 +47,3 @@ backup_gotify_enabled: false
 backup_gotify_url: "http://localhost:8080"
 backup_gotify_token: "{{ vault_backup_gotify_token | default('') }}"
 
-# PostgreSQL database passwords (for backup)
-backup_immich_db_password: "{{ vault_immich_db_password | default('') }}"
-backup_nextcloud_db_password: "{{ vault_nextcloud_db_password | default('') }}"
-backup_boards_db_password: "{{ vault_boards_db_password | default('') }}"

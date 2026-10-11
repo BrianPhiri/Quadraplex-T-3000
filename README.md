@@ -205,24 +205,18 @@ duplicated here.
 
 ### Backup & Restore (`makefiles/backup.mk`)
 
-All commands take `TARGET=<host>`; most take `STACK=` to scope to one stack instead of `all`.
-Run `make backup-help` for the full built-in reference (params, examples). See `docs/BACKUP.md`
-for the complete guide.
+Backups are one script on the host (`/usr/local/bin/quadraplex-backup`), run daily at 02:00 by
+`backup-daily.timer`: one archive per stack in `/mnt/media/backups`, kept 14 days locally and 90 days
+on S3. See `docs/BACKUP.md`.
 
-`make backup-setup TARGET=host` - Install rclone, create directories, deploy systemd timers.
-`make backup TARGET=host [STACK=media]` - Full backup (databases, configs, data).
-`make backup-postgres` / `backup-sqlite` / `backup-config` / `backup-data TARGET=host` - Backup one category only.
-`make backup-daily TARGET=host` - SQLite + configs + data, plus retention cleanup.
-`make backup-s3 TARGET=host` - Sync existing backups to S3.
-`make backup-retention TARGET=host` - Apply the retention policy (delete old backups).
-`make restore SERVICE=grafana STACK=utility DATE=20260425T120000 TARGET=host` - Restore a service from a specific backup.
-`make restore SERVICE=grafana STACK=utility LATEST=true TARGET=host` - Restore the most recent backup.
-`make restore-dry-run SERVICE=grafana STACK=utility TARGET=host` - Preview a restore without applying it.
-`make restore-remote SERVICE=immich STACK=media DATE=20260425 TARGET=host` - Restore from the S3 copy.
-`make restore-list STACK=utility TARGET=host` - List available backups for a stack.
-`make backup-status` / `backup-timers` / `backup-logs TARGET=host` - Check backup health, systemd timers, recent logs.
-`make backup-verify TARGET=host` - Integrity-check dump/db/tarball backups.
-`make s3-test` / `s3-list` / `s3-size TARGET=host` - S3 connectivity and usage.
+`make backup-setup TARGET=host` - Install the script, rclone config and daily timer.
+`make backup TARGET=host` - Run a full backup now (archives + S3 copy).
+`make backup-s3 TARGET=host` - Copy existing backups to S3 now.
+`make backup-status` / `backup-logs TARGET=host` - Timer, sizes, newest archives / recent logs.
+`make restore STACK=media [SERVICE=sonarr] [DATE=20261011] [FROM_S3=true] TARGET=host` - Restore a stack or one service.
+`make restore-dry-run ...` - Same arguments; shows what would be restored.
+`make restore-list [STACK=media] TARGET=host` - List archives.
+`make s3-test TARGET=host` - Test the S3 connection.
 
 ---
 

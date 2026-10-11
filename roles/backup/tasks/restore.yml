@@ -1,190 +1,83 @@
 ---
-# Restore tasks
+# Restore a whole stack, or one service's configs/ + data/ folders, from a daily archive.
+# Vars: restore_stack (required), restore_service (optional container name),
+#       restore_date (e.g. 20261011) or restore_latest, restore_from_s3, restore_dry_run
 
 - name: Validate restore parameters
   ansible.builtin.assert:
     that:
-      - restore_service is defined
-      - restore_date is defined or restore_latest is defined
-    fail_msg: "restore_service and (restore_date or restore_latest) must be defined"
+      - restore_stack is defined
+      - restore_stack in (backup_stacks | map(attribute='name'))
+    fail_msg: "restore_stack must be one of {{ backup_stacks | map(attribute='name') | join(', ') }}"
 
-- name: Restore from S3 if requested
-  when: restore_from_s3 is defined and restore_from_s3
-  block:
-    - name: Download backup from S3
-      ansible.builtin.command: >
-        {{ backup_rclone_bin }} copy
-        {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/
-        {{ backup_base_dir }}/
-        --include "**/*{{ restore_service }}*{{ restore_date | default('') }}*"
-        --log-level INFO
-      register: s3_download
-      changed_when: s3_download.rc == 0
+- name: Set restore paths
+  ansible.builtin.set_fact:
+    restore_dir: "{{ (backup_stacks | selectattr('name', 'equalto', restore_stack) | first).path }}"
+    restore_paths: "{{ ['./configs/' + restore_service, './data/' + restore_service] if restore_service | default('') else ['.'] }}"
 
-    - name: Verify download succeeded
-      when: s3_download.rc != 0
-      ansible.builtin.fail:
-        msg: "Failed to download backup from S3"
+- name: Download archives from S3
+  when: restore_from_s3 | default(false) | bool
+  ansible.builtin.command: >
+    {{ backup_rclone_bin }} copy
+    {{ backup_s3_remote_name }}:{{ backup_s3_bucket }}/{{ backup_s3_path_prefix }}/{{ restore_stack }}/
+    {{ backup_base_dir }}/{{ restore_stack }}/
+    --include "*{{ restore_date | default('') }}*"
+  changed_when: true
 
-- name: Find latest backup if restore_latest is set
-  when: restore_latest is defined and restore_latest
-  block:
-    - name: Find latest database backup
-      ansible.builtin.find:
-        paths: "{{ backup_base_dir }}/{{ restore_stack }}/databases"
-        patterns: "{{ restore_service }}_*.dump,{{ restore_service }}_*.db.gz"
-        use_regex: false
-      register: found_backups
+- name: Find archives
+  ansible.builtin.find:
+    paths: "{{ backup_base_dir }}/{{ restore_stack }}"
+    patterns: "{{ restore_stack }}_*{{ restore_date | default('') }}*.tar.gz"
+  register: found_archives
 
-    - name: Get most recent backup
-      when: found_backups.files | length > 0
-      ansible.builtin.set_fact:
-        restore_backup_file: "{{ found_backups.files | sort(attribute='mtime', reverse=true) | first }}"
+- name: Pick newest matching archive
+  ansible.builtin.set_fact:
+    restore_archive: "{{ (found_archives.files | sort(attribute='mtime') | last).path }}"
+  failed_when: found_archives.files | length == 0
 
-    - name: Fail if no backup found
-      when: found_backups.files | length == 0
-      ansible.builtin.fail:
-        msg: "No backup found for {{ restore_service }}"
+- name: Show what would be restored
+  when: restore_dry_run | default(false) | bool
+  ansible.builtin.shell: >
+    tar -tzf {{ restore_archive }} {{ restore_paths | join(' ') }} 2>/dev/null | head -50
+  changed_when: false
+  register: restore_preview
 
-- name: Find specific backup by date
-  when: restore_date is defined and (restore_latest is not defined or not restore_latest)
-  block:
-    - name: Find backup with specific date
-      ansible.builtin.find:
-        paths: "{{ backup_base_dir }}/{{ restore_stack }}/databases"
-        patterns: "{{ restore_service }}_*{{ restore_date }}*"
-        use_regex: false
-      register: dated_backups
-
-    - name: Set restore file
-      when: dated_backups.files | length > 0
-      ansible.builtin.set_fact:
-        restore_backup_file: "{{ dated_backups.files | first }}"
-
-    - name: Fail if backup not found
-      when: dated_backups.files | length == 0
-      ansible.builtin.fail:
-        msg: "No backup found for {{ restore_service }} with date {{ restore_date }}"
-
-- name: Restore PostgreSQL database
-  when: restore_backup_file.path is regex('.*\.dump$')
-  block:
-    - name: Confirm restore operation
-      when: restore_dry_run is not defined or not restore_dry_run
-      ansible.builtin.pause:
-        prompt: "WARNING: This will replace the {{ restore_service }} database. Continue? (yes/no)"
-      register: restore_confirm
-
-    - name: Abort if not confirmed
-      when: restore_confirm.user_input | lower != 'yes'
-      ansible.builtin.fail:
-        msg: "Restore operation cancelled by user"
-
-    - name: Get database container name
-      ansible.builtin.set_fact:
-        restore_container: "{{ (backup_services.postgres | selectattr('name', 'equalto', restore_service) | first).container }}"
-        restore_user: "{{ (backup_services.postgres | selectattr('name', 'equalto', restore_service) | first).user }}"
-        restore_database: "{{ (backup_services.postgres | selectattr('name', 'equalto', restore_service) | first).database }}"
-
-    - name: Copy backup to container
-      ansible.builtin.command: >
-        docker cp {{ restore_backup_file.path }} {{ restore_container }}:/tmp/restore.dump
-      register: copy_to_container
-      changed_when: copy_to_container.rc == 0
-
-    - name: Drop existing database connections
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: >
-        docker exec {{ restore_container }} psql -U {{ restore_user }} -d postgres
-        -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '{{ restore_database }}' AND pid <> pg_backend_pid();"
-      failed_when: false
-
-    - name: Drop and recreate database
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: >
-        docker exec {{ restore_container }} psql -U {{ restore_user }} -d postgres
-        -c "DROP DATABASE IF EXISTS {{ restore_database }}; CREATE DATABASE {{ restore_database }} OWNER {{ restore_user }};"
-      register: recreate_db
-
-    - name: Restore database from dump
-      when: not restore_dry_run | default(false) and recreate_db.rc == 0
-      ansible.builtin.command: >
-        docker exec {{ restore_container }} pg_restore -U {{ restore_user }} -d {{ restore_database }} /tmp/restore.dump
-      environment:
-        PGPASSWORD: "{{ lookup('vars', 'backup_' + restore_service + '_db_password', default='') }}"
-      register: restore_result
-
-    - name: Clean up dump from container
-      ansible.builtin.command: >
-        docker exec {{ restore_container }} rm -f /tmp/restore.dump
-      changed_when: false
-      failed_when: false
-
-    - name: Log restore result
-      ansible.builtin.debug:
-        msg: "Successfully restored {{ restore_service }} database from {{ restore_backup_file.path }}"
-
-- name: Restore SQLite database
-  when: restore_backup_file.path is regex('.*\.db\.gz$')
-  block:
-    - name: Confirm restore operation
-      when: restore_dry_run is not defined or not restore_dry_run
-      ansible.builtin.pause:
-        prompt: "WARNING: This will replace the {{ restore_service }} database. Continue? (yes/no)"
-      register: restore_confirm
-
-    - name: Abort if not confirmed
-      when: restore_confirm.user_input | lower != 'yes'
-      ansible.builtin.fail:
-        msg: "Restore operation cancelled by user"
-
-    - name: Get database info
-      ansible.builtin.set_fact:
-        restore_db_path: "{{ (backup_services.sqlite | selectattr('name', 'equalto', restore_service) | first).path }}"
-        restore_container: "{{ (backup_services.sqlite | selectattr('name', 'equalto', restore_service) | first).container }}"
-
-    - name: Stop service container
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: docker stop {{ restore_container }}
-      register: stop_container
-      changed_when: stop_container.rc == 0
-      failed_when: false
-
-    - name: Decompress and restore database
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: >
-        sh -c "gunzip -c {{ restore_backup_file.path }} > {{ restore_db_path }}"
-      register: restore_result
-
-    - name: Set correct permissions
-      when: not restore_dry_run | default(false) and restore_result.rc == 0
-      ansible.builtin.file:
-        path: "{{ restore_db_path }}"
-        owner: root
-        group: root
-        mode: '0644'
-
-    - name: Start service container
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: docker start {{ restore_container }}
-      register: start_container
-      changed_when: start_container.rc == 0
-
-    - name: Wait for container to be healthy
-      when: not restore_dry_run | default(false)
-      ansible.builtin.command: >
-        docker inspect --format="{{ '{{' }}.State.Health.Status{{ '}}' }}" {{ restore_container }}
-      register: health_check
-      until: health_check.stdout == "healthy" or health_check.rc != 0
-      retries: 30
-      delay: 2
-      failed_when: false
-
-    - name: Log restore result
-      ansible.builtin.debug:
-        msg: "Successfully restored {{ restore_service }} database from {{ restore_backup_file.path }}"
-
-- name: Dry run summary
-  when: restore_dry_run is defined and restore_dry_run
+- name: Dry-run summary
+  when: restore_dry_run | default(false) | bool
   ansible.builtin.debug:
-    msg: "DRY RUN: Would restore {{ restore_service }} from {{ restore_backup_file.path }}"
+    msg: "{{ ['Would restore ' ~ (restore_paths | join(', ')) ~ ' from ' ~ restore_archive ~ ' into ' ~ restore_dir] + restore_preview.stdout_lines }}"
+
+- name: Restore
+  when: not (restore_dry_run | default(false) | bool)
+  block:
+    - name: Confirm restore
+      ansible.builtin.pause:
+        prompt: "Overwrite {{ restore_paths | join(', ') }} in {{ restore_dir }} from {{ restore_archive | basename }}? (yes/no)"
+      register: restore_confirm
+
+    - name: Abort if not confirmed
+      when: restore_confirm.user_input | lower != 'yes'
+      ansible.builtin.fail:
+        msg: "Restore cancelled"
+
+    - name: Stop {{ restore_service | default(restore_stack + ' stack') }}
+      ansible.builtin.command: >-
+        {{ ('docker stop ' + restore_service) if restore_service | default('')
+           else ('systemctl stop ' + restore_stack + '-stack') }}
+      changed_when: true
+
+    - name: Extract archive
+      ansible.builtin.command: >
+        tar -xzf {{ restore_archive }} -C {{ restore_dir }} --wildcards {{ restore_paths | join(' ') }}
+      register: restore_extract
+      changed_when: true
+      # One service may have only configs/ or only data/; tar fails on the missing one.
+      failed_when: restore_extract.rc != 0 and 'Not found in archive' not in restore_extract.stderr
+
+  always:
+    - name: Start {{ restore_service | default(restore_stack + ' stack') }}
+      when: restore_confirm.user_input | default('') | lower == 'yes'
+      ansible.builtin.command: >-
+        {{ ('docker start ' + restore_service) if restore_service | default('')
+           else ('systemctl start ' + restore_stack + '-stack') }}
+      changed_when: true
