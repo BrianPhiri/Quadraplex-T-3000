@@ -1,9 +1,15 @@
 profilarr:
-  image: santiagosayshey/profilarr:{{ services.profilarr.version }}
+  image: ghcr.io/dictionarry-hub/profilarr:{{ services.profilarr.version }}
   container_name: profilarr
   restart: unless-stopped
   environment:
+    - PUID={{ stack_config.user_id }}
+    - PGID={{ stack_config.group_id }}
     - TZ={{ stack_config.timezone }}
+{% if services.profilarr.traefik.enabled | default(false) %}
+    # v2 needs its public URL behind a reverse proxy
+    - ORIGIN=https://{{ services.profilarr.traefik.host }}.{{ services.profilarr.traefik.domain }}
+{% endif %}
   volumes:
     - {{ stack_config.config_path }}/profilarr:/config
 {% if services.profilarr.port is defined %}

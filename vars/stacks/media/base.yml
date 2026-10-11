@@ -51,7 +51,7 @@ media_stack:
     audiobookshelf: "2.37.1"
     lazylibrarian: "65c8a272-ls369"
     shelfmark: "latest"
-    profilarr: "v1.1.5"
+    profilarr: "2.2.0"
     qui: "v1.31.1"
     flaresolverr: "v3.5.2"
 
