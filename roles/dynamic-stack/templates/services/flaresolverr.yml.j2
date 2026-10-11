@@ -1,0 +1,13 @@
+flaresolverr:
+  image: flaresolverr/flaresolverr:{{ services.flaresolverr.version }}
+  container_name: flaresolverr
+  restart: unless-stopped
+  environment:
+    - TZ={{ stack_config.timezone }}
+    - LOG_LEVEL=info
+{% if services.flaresolverr.networks is defined %}
+  networks:
+{% for network in services.flaresolverr.networks %}
+    - {{ network }}
+{% endfor %}
+{% endif %}

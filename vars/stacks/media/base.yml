@@ -53,6 +53,7 @@ media_stack:
     shelfmark: "latest"
     profilarr: "v1.1.5"
     qui: "v1.31.1"
+    flaresolverr: "v3.5.2"
 
 # Service configuration
 media_services:
@@ -67,6 +68,13 @@ media_services:
       enabled: false
       host: "browse"
       domain: "{{ domain }}"
+  # Solves Cloudflare challenges for Prowlarr indexers (Prowlarr > Settings > Indexers > FlareSolverr proxy).
+  # Internal only: Prowlarr reaches it at http://flaresolverr:8191 on traefik_net.
+  flaresolverr:
+    enabled: true
+    version: "{{ media_stack.versions.flaresolverr | default('latest') }}"
+    networks:
+      - traefik_net
   prowlarr:
     enabled: true
     version: "{{ media_stack.versions.prowlarr | default('latest') }}"
