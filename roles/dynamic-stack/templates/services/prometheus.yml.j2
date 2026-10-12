@@ -45,3 +45,9 @@ prometheus:
     - {{ dns }}
 {% endfor %}
 {% endif %}
+{% if services.prometheus.extra_hosts is defined %}
+  extra_hosts:
+{% for host in services.prometheus.extra_hosts %}
+    - "{{ host }}"
+{% endfor %}
+{% endif %}

@@ -77,6 +77,10 @@ utility_services:
     version: "{{ utility_stack.versions.prometheus | default('latest') }}"
     networks:
       - traefik_net
+    # MyHive's metrics sites only answer NetBird peers: reach them at the server's NetBird IP
+    extra_hosts:
+      - "node.hive.brianphiri.digital:100.80.161.174"
+      - "cadvisor.hive.brianphiri.digital:100.80.161.174"
   loki:
     enabled: true
     version: "{{ utility_stack.versions.loki | default('3') }}"

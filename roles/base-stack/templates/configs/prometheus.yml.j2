@@ -43,6 +43,25 @@ scrape_configs:
           instance: '{{ inventory_hostname }}'
 {% endif %}
 
+{% if vault_hive_metrics_password is defined %}
+  # MyHive, the online server: over NetBird (extra_hosts on the prometheus service), behind Caddy's basic auth
+  - job_name: 'hive-node'
+    scheme: https
+    basic_auth: { username: prometheus, password: '{{ vault_hive_metrics_password }}' }
+    static_configs:
+      - targets: ['node.hive.brianphiri.digital']
+        labels:
+          instance: 'hive'
+
+  - job_name: 'hive-cadvisor'
+    scheme: https
+    basic_auth: { username: prometheus, password: '{{ vault_hive_metrics_password }}' }
+    static_configs:
+      - targets: ['cadvisor.hive.brianphiri.digital']
+        labels:
+          instance: 'hive'
+{% endif %}
+
 {% if 'grafana' in services %}
   # Grafana
   - job_name: 'grafana'
