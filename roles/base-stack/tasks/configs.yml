@@ -156,4 +156,9 @@
   when:
     - stack_name == 'utility-stack'
     - "'searxng' in services"
-  notify: "restart {{ stack_name }}"
+  register: searxng_settings
+
+# compose up leaves a running container alone, so SearXNG only reads new settings after a restart
+- name: Restart SearXNG for new settings
+  command: docker restart searxng
+  when: searxng_settings.changed
