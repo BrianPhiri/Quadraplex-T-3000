@@ -1,0 +1,73 @@
+# Grafana alert rules, sent to Gotify (an app whose token is vault_grafana_gotify_token).
+# Rules route straight to the contact point (notification_settings), so the notification policy tree is untouched.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Gotify
+    receivers:
+      - uid: gotify
+        type: webhook
+        # Gotify reads the "title" and "message" fields of Grafana's webhook JSON; priority is the app's default
+        settings:
+          url: "http://gotify/message?token={{ vault_grafana_gotify_token }}"
+          httpMethod: POST
+
+groups:
+  - orgId: 1
+    name: hosts
+    folder: Alerts
+    interval: 1m
+    rules:
+      # MyHive, the online server, scraped over NetBird: down, or NetBird between deborah and it is broken
+      - uid: hive-down
+        title: Hive down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: PBFA97CFB590B2093  # the provisioned Prometheus datasource (uid derived from its name)
+            model: { refId: A, instant: true, expr: 'min(up{instance="hive"})' }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions: [{ evaluator: { type: lt, params: [1] } }]
+        for: 3m
+        noDataState: Alerting  # no up series at all means Prometheus stopped scraping it
+        execErrState: Error
+        annotations:
+{% raw %}
+          summary: "hive (169.58.181.242) has not answered Prometheus over NetBird for 3 minutes"
+{% endraw %}
+        notification_settings: { receiver: Gotify }
+
+      # Every real filesystem on every scraped host (hive and home), one alert per mount
+      - uid: disk-space
+        title: Disk space low
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              refId: A
+              instant: true
+              expr: '100 * node_filesystem_avail_bytes{fstype=~"ext4|xfs|btrfs|vfat"} / node_filesystem_size_bytes'
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions: [{ evaluator: { type: lt, params: [10] } }]
+        for: 15m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+{% raw %}
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }}: {{ humanize $values.A.Value }}% free"
+{% endraw %}
+        notification_settings: { receiver: Gotify }

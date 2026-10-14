@@ -51,6 +51,35 @@
     - "'grafana' in services"
     - "'prometheus' in services"
 
+# Alert rules go live once vault_grafana_gotify_token is set (a Gotify app for Grafana).
+# Grafana reads provisioning only at startup, so a changed file restarts it.
+- name: Grafana alerting provisioning
+  when:
+    - stack_name == 'utility-stack'
+    - "'grafana' in services"
+    - vault_grafana_gotify_token is defined
+  block:
+    - name: Grafana alerting directory
+      file:
+        path: "{{ stack_config.data_path }}/grafana/provisioning/alerting"
+        state: directory
+        owner: "{{ stack_user_id }}"
+        group: "{{ stack_group_id }}"
+        mode: '0755'
+
+    - name: Deploy Grafana alert rules and Gotify contact point
+      template:
+        src: configs/grafana/alerting/alerts.yml.j2
+        dest: "{{ stack_config.data_path }}/grafana/provisioning/alerting/alerts.yml"
+        owner: "{{ stack_user_id }}"
+        group: "{{ stack_group_id }}"
+        mode: '0600'  # holds the Gotify token
+      register: grafana_alerting
+
+    - name: Restart Grafana for new alerting provisioning
+      command: docker restart grafana
+      when: grafana_alerting.changed
+
 - name: Deploy Grafana Loki datasource provisioning
   template:
     src: configs/grafana/datasources/loki.yml.j2
