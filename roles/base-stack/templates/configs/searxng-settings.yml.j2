@@ -9,3 +9,11 @@ search:
   formats:
     - html
     - json   # Funkwe (internal/agent/searxng.go) calls /search?format=json
+
+# Extra web engines, so search still works when Brave rate-limits or DuckDuckGo asks for a CAPTCHA
+engines:
+  - name: bing
+    disabled: false
+  - name: mojeek
+    inactive: false
+    disabled: false
