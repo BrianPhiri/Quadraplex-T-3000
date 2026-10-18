@@ -28,9 +28,15 @@
     owner: "{{ stack_user_id }}"
     group: "{{ stack_group_id }}"
     mode: '0644'
+  register: prometheus_config
   when:
     - stack_name == 'utility-stack'
     - "'prometheus' in services"
+
+# compose up leaves a running container alone, so Prometheus only reads new scrape jobs after a restart
+- name: Restart Prometheus when its configuration changed
+  command: docker restart prometheus
+  when: prometheus_config.changed | default(false)
 
 - name: Set proper ownership for all config files
   file:
