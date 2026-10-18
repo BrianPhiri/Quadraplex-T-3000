@@ -44,7 +44,32 @@ groups:
 {% endraw %}
         notification_settings: { receiver: Gotify }
 
-      # Every real filesystem on every scraped host (hive and home), one alert per mount
+      # ZedCloud stage A server, scraped over NetBird: down, or NetBird between deborah and it is broken
+      - uid: zedcloud-down
+        title: ZedCloud down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: PBFA97CFB590B2093  # the provisioned Prometheus datasource (uid derived from its name)
+            model: { refId: A, instant: true, expr: 'min(up{instance="zedcloud"})' }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions: [{ evaluator: { type: lt, params: [1] } }]
+        for: 3m
+        noDataState: Alerting  # no up series at all means Prometheus stopped scraping it
+        execErrState: Error
+        annotations:
+{% raw %}
+          summary: "zedcloud (169.58.112.116) has not answered Prometheus over NetBird for 3 minutes"
+{% endraw %}
+        notification_settings: { receiver: Gotify }
+
+      # Every real filesystem on every scraped host (hive, zedcloud and home), one alert per mount
       - uid: disk-space
         title: Disk space low
         condition: C

@@ -60,6 +60,15 @@ scrape_configs:
       - targets: ['cadvisor.hive.brianphiri.digital']
         labels:
           instance: 'hive'
+
+  # ZedCloud's stage A server (BrianPhiri/ZedCloud ansible/): node_exporter on its NetBird IP only, same
+  # prometheus user and password as hive. Plain HTTP inside NetBird's WireGuard tunnel.
+  - job_name: 'zedcloud-node'
+    basic_auth: { username: prometheus, password: '{{ vault_hive_metrics_password }}' }
+    static_configs:
+      - targets: ['100.80.138.178:9100']
+        labels:
+          instance: 'zedcloud'
 {% endif %}
 
 {% if 'grafana' in services %}
