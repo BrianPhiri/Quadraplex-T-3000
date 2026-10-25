@@ -1,0 +1,52 @@
+---
+# 00- sorts before 50-cloud-init.conf, and sshd keeps the first value it reads.
+- name: Key-only SSH, no root login
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/00-hardening.conf
+    content: |
+      # Managed by Ansible (roles/hardening)
+      PasswordAuthentication no
+      PermitRootLogin no
+    mode: '0644'
+  register: hardening_sshd
+
+# Reload (not restart) so open sessions survive; a bad config fails here before the reload.
+- name: Validate sshd config and reload
+  when: hardening_sshd is changed
+  ansible.builtin.shell: sshd -t && systemctl reload ssh
+
+- name: Remove users from the docker group
+  ansible.builtin.shell: id -nG {{ item }} | grep -qw docker && gpasswd -d {{ item }} docker || true
+  register: hardening_docker_group
+  changed_when: "'Removing' in hardening_docker_group.stdout"
+  loop: "{{ hardening_docker_group_remove }}"
+
+- name: Install unattended-upgrades and smartmontools
+  ansible.builtin.package:
+    name: [unattended-upgrades, smartmontools]
+    state: present
+
+- name: Configure automatic updates
+  ansible.builtin.copy:
+    dest: "/etc/apt/apt.conf.d/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: '0644'
+  loop:
+    - name: 20auto-upgrades
+      content: |
+        APT::Periodic::Update-Package-Lists "1";
+        APT::Periodic::Unattended-Upgrade "1";
+    - name: 52quadraplex-unattended
+      content: |
+        // Managed by Ansible (roles/hardening)
+        Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+        Unattended-Upgrade::Remove-Unused-Dependencies "true";
+        Unattended-Upgrade::Automatic-Reboot "false";
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Enable SMART monitoring
+  ansible.builtin.systemd:
+    name: smartmontools
+    enabled: true
+    state: started

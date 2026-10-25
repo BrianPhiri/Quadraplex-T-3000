@@ -1,0 +1,7 @@
+---
+# Key-only SSH, docker group cleanup, automatic updates, SMART monitoring. No firewall changes.
+- name: Host hardening
+  hosts: all
+  become: true
+  roles:
+    - hardening

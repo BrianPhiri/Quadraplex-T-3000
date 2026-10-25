@@ -1,7 +1,7 @@
 ---
 - name: Install tools the check needs
   ansible.builtin.package:
-    name: [sqlite3, file, curl]
+    name: [sqlite3, file, curl, smartmontools]
     state: present
 
 - name: Install maintenance script

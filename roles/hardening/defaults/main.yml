@@ -1,0 +1,4 @@
+---
+# Host hardening: key-only SSH, docker group cleanup, automatic updates, SMART monitoring.
+# Users dropped from the docker group (docker group = root on the host).
+hardening_docker_group_remove: [emmental]

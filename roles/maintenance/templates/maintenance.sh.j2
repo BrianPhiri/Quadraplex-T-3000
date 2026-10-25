@@ -25,6 +25,13 @@ for m in / /mnt/media; do
   pct=$(df --output=pcent "$m" | tail -1 | tr -dc 0-9)
   [ "$pct" -ge {{ maintenance_disk_warn_pct }} ] && warn "disk $m at ${pct}%" || ok "disk $m at ${pct}%"
 done
+for d in $(lsblk -dn -o NAME,TYPE | awk '$2=="disk"{print $1}'); do
+  smartctl -H /dev/$d | grep -q PASSED && ok "SMART /dev/$d passed" || warn "SMART /dev/$d health not PASSED"
+  # SSD raw values are vendor-specific (the Toshiba reports 100 = percent), so raw counts are HDD-only.
+  [ "$(cat /sys/block/$d/queue/rotational)" = 1 ] || continue
+  bad=$(smartctl -A /dev/$d | awk '/Reallocated_Sector_Ct|Current_Pending_Sector/ && $10>0 {print $2"="$10}' | xargs)
+  [ -n "$bad" ] && warn "SMART /dev/$d: $bad"
+done
 info "memory: $(free -h | awk '/Mem:/ {print $3" used of "$2}')"
 
 section "Containers"
