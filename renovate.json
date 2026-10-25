@@ -1,0 +1,72 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Africa/Nairobi",
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "automerge": false,
+  "customManagers": [
+    {
+      "description": "Pinned versions in the versions: block of each stack vars file; depName is the service key, mapped to its image below",
+      "customType": "regex",
+      "managerFilePatterns": ["/^vars/(stacks/[^/]+|proxy)/base\\.yml$/"],
+      "matchStringsStrategy": "recursive",
+      "matchStrings": [
+        "versions:\\n(?:    .+\\n)+",
+        "    (?<depName>[a-z_]+): \"(?<currentValue>v?\\d[^\"]*)\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^roles/backup/(defaults|tasks)/main\\.yml$/",
+        "/^makefiles/backup\\.mk$/"
+      ],
+      "matchStrings": ["rclone/rclone:(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "rclone/rclone",
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Hash-style tags that can't be compared",
+      "matchDepNames": ["lazylibrarian", "searxng"],
+      "enabled": false
+    },
+    {
+      "description": "linuxserver images: <app version>[ubuNNNN][_<libtorrent>]-ls<build>",
+      "matchDepNames": ["bazarr", "calibre", "freshrss", "heimdall", "homeassistant", "jellyfin", "kavita", "pairdrop", "prowlarr", "qbittorrent", "radarr", "sonarr", "syncthing"],
+      "overridePackageName": "lscr.io/linuxserver/{{depName}}"
+    },
+    { "matchDepNames": ["mylar"], "overridePackageName": "lscr.io/linuxserver/mylar3" },
+    {
+      "matchPackageNames": ["lscr.io/linuxserver/**"],
+      "versioning": "regex:^v?(?<major>\\d+)\\.(?<minor>\\d+)(\\.(?<patch>\\d+))?(\\.(?<build>\\d+))?(?<compatibility>ubu\\d+)?(_v[\\d.]+)?-ls(?<revision>\\d+)$"
+    },
+    { "matchDepNames": ["adguard_home"], "overridePackageName": "adguard/adguardhome" },
+    { "matchDepNames": ["audiobookshelf"], "overridePackageName": "ghcr.io/advplyr/audiobookshelf" },
+    { "matchDepNames": ["cadvisor"], "overridePackageName": "ghcr.io/google/cadvisor" },
+    { "matchDepNames": ["filebrowser"], "overridePackageName": "filebrowser/filebrowser" },
+    { "matchDepNames": ["flaresolverr"], "overridePackageName": "flaresolverr/flaresolverr" },
+    { "matchDepNames": ["glance"], "overridePackageName": "glanceapp/glance" },
+    { "matchDepNames": ["gotify"], "overridePackageName": "gotify/server" },
+    { "matchDepNames": ["grafana"], "overridePackageName": "grafana/grafana" },
+    { "matchDepNames": ["immich"], "overridePackageName": "ghcr.io/immich-app/immich-server" },
+    { "matchDepNames": ["kitchenowl"], "overridePackageName": "tombursch/kitchenowl" },
+    { "matchDepNames": ["loki"], "overridePackageName": "grafana/loki" },
+    { "matchDepNames": ["mealie"], "overridePackageName": "ghcr.io/mealie-recipes/mealie" },
+    { "matchDepNames": ["node_exporter"], "overridePackageName": "prom/node-exporter" },
+    { "matchDepNames": ["portracker"], "overridePackageName": "mostafawahied/portracker" },
+    { "matchDepNames": ["profilarr"], "overridePackageName": "ghcr.io/dictionarry-hub/profilarr" },
+    { "matchDepNames": ["prometheus"], "overridePackageName": "prom/prometheus" },
+    { "matchDepNames": ["promtail"], "overridePackageName": "grafana/promtail" },
+    { "matchDepNames": ["qui"], "overridePackageName": "ghcr.io/autobrr/qui" },
+    { "matchDepNames": ["seerr"], "overridePackageName": "ghcr.io/seerr-team/seerr" },
+    { "matchDepNames": ["uptime_kuma"], "overridePackageName": "louislam/uptime-kuma" },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major updates"
+    }
+  ]
+}
