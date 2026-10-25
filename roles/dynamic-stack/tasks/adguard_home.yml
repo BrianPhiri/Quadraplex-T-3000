@@ -1,7 +1,8 @@
 ---
-# AdGuardHome.yaml is the app's own file (UI changes, password hash, filters live there), so the
-# repo only merges services.adguard_home.settings into it and leaves every other key alone.
-# Edited while stopped, like lazylibrarian.yml. Skipped until first-run setup has created it.
+# AdGuardHome.yaml is the app's own file (the UI writes to it), so deploy merges
+# services.adguard_home.settings, http.address and the vault's users on top of it; keys not
+# in settings stay UI-managed. No file yet (fresh server) -> settings become the whole file,
+# skipping the setup wizard. Edited while stopped, like lazylibrarian.yml.
 - name: AdGuard Home - read AdGuardHome.yaml
   slurp:
     path: "{{ stack.config_path }}/adguard_home/AdGuardHome.yaml"
@@ -9,12 +10,12 @@
   failed_when: false
 
 - name: AdGuard Home - apply repo settings (stopped while editing)
-  when:
-    - adguard_config.content is defined
-    - adguard_current != adguard_wanted
+  when: adguard_current != adguard_wanted
   vars:
-    adguard_current: "{{ adguard_config.content | b64decode | from_yaml }}"
-    adguard_wanted: "{{ adguard_current | combine(services.adguard_home.settings, {'http': {'address': '0.0.0.0:' ~ services.adguard_home.http}}, recursive=True) }}"
+    adguard_current: "{{ (adguard_config.content | b64decode | from_yaml) if adguard_config.content is defined else {} }}"
+    adguard_wanted: "{{ adguard_current | combine(services.adguard_home.settings,
+                        {'http': {'address': '0.0.0.0:' ~ services.adguard_home.http}, 'users': vault_adguard_users},
+                        recursive=True) }}"
   block:
     - command: docker stop adguardhome
     - copy:
