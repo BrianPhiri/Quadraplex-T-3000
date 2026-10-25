@@ -5,6 +5,7 @@
   "schedule": ["before 6am on monday"],
   "dependencyDashboard": true,
   "automerge": false,
+  "enabledManagers": ["custom.regex"],
   "customManagers": [
     {
       "description": "Pinned versions in the versions: block of each stack vars file; depName is the service key, mapped to its image below",
