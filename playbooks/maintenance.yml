@@ -1,0 +1,7 @@
+---
+# Install the weekly maintenance check (Sunday 08:00), optionally run it now.
+- name: Homelab maintenance
+  hosts: all
+  become: true
+  roles:
+    - maintenance

@@ -1,0 +1,21 @@
+---
+# Weekly homelab check + cleanup (templates/maintenance.sh.j2), run by maintenance.timer.
+maintenance_schedule: "Sun 08:00"
+maintenance_report_dir: /var/log/quadraplex-maintenance
+maintenance_report_retention_days: 90
+
+maintenance_media_config: /opt/media-stack/configs
+maintenance_scan_dirs: [/mnt/media/downloads, /mnt/media/movies, /mnt/media/tv, /mnt/media/books, /mnt/media/audiobooks]
+maintenance_risky_extensions: [exe, scr, bat, cmd, com, msi, lnk, vbs, js, jar, ps1, dll, apk, hta, sh]
+
+maintenance_disk_warn_pct: 85
+maintenance_failed_ssh_warn: 10
+maintenance_journal_max: 500M
+# Logins from anywhere else are flagged (LAN and NetBird ranges).
+maintenance_trusted_ssh_prefixes: ["192.168.100.", "100.80."]
+maintenance_expected_users: [root, brian, emmental]
+
+# Same Gotify app token as backups, if configured.
+maintenance_gotify_enabled: "{{ backup_gotify_enabled | default(false) }}"
+maintenance_gotify_url: "{{ backup_gotify_url | default('') }}"
+maintenance_gotify_token: "{{ backup_gotify_token | default('') }}"

@@ -1,0 +1,59 @@
+---
+- name: Install tools the check needs
+  ansible.builtin.package:
+    name: [sqlite3, file, curl]
+    state: present
+
+- name: Install maintenance script
+  ansible.builtin.template:
+    src: maintenance.sh.j2
+    dest: /usr/local/bin/quadraplex-maintenance
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Install maintenance service and timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: '0644'
+  loop:
+    - name: maintenance.service
+      content: |
+        [Unit]
+        Description=Weekly homelab health check and cleanup
+        After=network.target docker.service
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/quadraplex-maintenance
+        TimeoutStartSec=7200
+    - name: maintenance.timer
+      content: |
+        [Unit]
+        Description=Run homelab maintenance weekly ({{ maintenance_schedule }})
+        [Timer]
+        OnCalendar={{ maintenance_schedule }}
+        Persistent=true
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Enable maintenance timer
+  ansible.builtin.systemd:
+    name: maintenance.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Run maintenance now
+  when: maintenance_run_now | default(false) | bool
+  ansible.builtin.command: /usr/local/bin/quadraplex-maintenance {{ '--no-cleanup' if maintenance_no_cleanup | default(false) | bool else '' }}
+  register: maintenance_run
+  changed_when: false
+  failed_when: false
+
+- name: Show report
+  when: maintenance_run is not skipped
+  ansible.builtin.debug:
+    var: maintenance_run.stdout_lines

@@ -1,0 +1,127 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Weekly homelab health check + safe cleanup. Usage: quadraplex-maintenance [--no-cleanup]
+# Checks only report; cleanup touches nothing that can't be re-pulled or regenerated
+# (stopped containers, unused images, old logs) - never media or downloads.
+set -uo pipefail
+
+REPORT_DIR="{{ maintenance_report_dir }}"
+REPORT="$REPORT_DIR/maintenance_$(date +%Y%m%d_%H%M).log"
+DOMAIN="{{ domain }}"
+WARNINGS=()
+mkdir -p "$REPORT_DIR"
+exec > >(tee "$REPORT") 2>&1
+
+section() { echo; echo "== $*"; }
+ok()   { echo "  ok    $*"; }
+warn() { echo "  WARN  $*"; WARNINGS+=("$*"); }
+info() { echo "        $*"; }
+
+echo "Quadraplex maintenance - $(hostname) - $(date '+%F %T %Z')"
+
+section "System"
+info "$(uptime -p), load $(cut -d' ' -f1-3 /proc/loadavg)"
+for m in / /mnt/media; do
+  pct=$(df --output=pcent "$m" | tail -1 | tr -dc 0-9)
+  [ "$pct" -ge {{ maintenance_disk_warn_pct }} ] && warn "disk $m at ${pct}%" || ok "disk $m at ${pct}%"
+done
+info "memory: $(free -h | awk '/Mem:/ {print $3" used of "$2}')"
+
+section "Containers"
+info "$(docker ps -q | wc -l) running"
+while read -r name state; do warn "container $name is $state"; done < <(docker ps -a --format '{% raw %}{{.Names}} {{.State}}{% endraw %}' | grep -v ' running$')
+while read -r line; do warn "container $line"; done < <(docker ps --format '{% raw %}{{.Names}} {{.Status}}{% endraw %}' | grep -E 'unhealthy|Restarting')
+for c in $(docker ps --format '{% raw %}{{.Names}}{% endraw %}'); do
+  n=$(docker inspect -f '{% raw %}{{.RestartCount}}{% endraw %}' "$c"); [ "$n" -gt 0 ] && warn "container $c restarted $n times"
+done
+n=$(for c in $(docker ps -q); do docker inspect -f '{% raw %}{{json .Config.Labels}}{% endraw %}' "$c"; done | grep -c 'example\.com')
+[ "$n" -gt 0 ] && warn "$n containers routed to placeholder example.com (deployed without the vault domain?)" || ok "no placeholder routes"
+
+section "Web routes (via Traefik)"
+for host in $(for c in $(docker ps -q); do docker inspect -f '{% raw %}{{range $k,$v := .Config.Labels}}{{$v}} {{end}}{% endraw %}' "$c"; done \
+              | grep -oE "Host\(\`[a-z0-9-]+\.$DOMAIN\`\)" | sed -E 's/Host\(`([^`]*)`\)/\1/' | sort -u); do
+  code=$(curl -sk -m 15 -o /dev/null -w '%{http_code}' --resolve "$host:443:127.0.0.1" "https://$host/")
+  case "$code" in 2*|3*|401) ;; *) warn "https://$host returned $code" ;; esac
+done
+ok "route check done"
+
+section "Apps"
+for a in sonarr:8989:v3 radarr:7878:v3 prowlarr:9696:v1; do
+  IFS=: read -r app port ver <<< "$a"
+  key=$(grep -oP '(?<=<ApiKey>)[^<]+' "{{ maintenance_media_config }}/$app/config.xml" 2>/dev/null) || { warn "$app: no API key found"; continue; }
+  issues=$(docker exec "$app" curl -s -m 20 -H "X-Api-Key: $key" "http://localhost:$port/api/$ver/health" \
+           | python3 -c 'import json,sys; [print(i["type"]+": "+i["message"][:140]) for i in json.load(sys.stdin)]' 2>/dev/null) \
+    || { warn "$app: health API unreachable (app down?)"; continue; }
+  [ -z "$issues" ] && ok "$app healthy" || while read -r i; do warn "$app $i"; done <<< "$issues"
+done
+MYLAR_DB="{{ maintenance_media_config }}/mylar/mylar/mylar.db"
+if [ -f "$MYLAR_DB" ]; then
+  paused=$(sqlite3 "$MYLAR_DB" "select JobName from jobhistory where Status='Paused' and JobName in ('Folder Monitor','Auto-Search','DB Updater')" 2>/dev/null | tr '\n' ',')
+  [ -n "$paused" ] && warn "mylar jobs paused: ${paused%,} (downloads won't be filed/searched)" || ok "mylar jobs running"
+fi
+
+section "Backups"
+fails=$(journalctl -u backup-daily --since "-7 days" --no-pager -o cat | grep -c 'FAILED' || true)
+journalctl -u backup-daily --since "-7 days" --no-pager -o cat | grep -E '^\[.*(FAILED|done)' | tail -1 | sed 's/^/        last: /'
+[ "$fails" -gt 0 ] && warn "backup reported failures on $fails of the last 7 runs" || ok "no backup failures in 7 days"
+newest=$(find "{{ backup_base_dir }}" -name '*.tar.gz' -mtime -2 2>/dev/null | head -1)
+[ -n "$newest" ] && ok "fresh archive: $(basename "$newest")" || warn "no backup archive newer than 2 days in {{ backup_base_dir }}"
+
+section "Security"
+logins=$(journalctl -u ssh --since "-7 days" --no-pager | grep -oE 'Accepted \S+ for \S+ from \S+' | awk '{print $4"@"$6}' | sort | uniq -c)
+info "ssh logins (7d):"; echo "${logins:-          none}" | sed 's/^/          /'
+while read -r cnt who; do
+  src=${who#*@}; trusted=0
+  for p in {{ maintenance_trusted_ssh_prefixes | join(' ') }}; do [[ "$src" == $p* ]] && trusted=1; done
+  [ $trusted -eq 0 ] && warn "ssh login from untrusted source: $who ($cnt times)"
+done <<< "$logins"
+failed=$(journalctl -u ssh --since "-7 days" --no-pager | grep -cE 'Failed password|Invalid user' || true)
+[ "$failed" -gt {{ maintenance_failed_ssh_warn }} ] && warn "$failed failed ssh logins in 7 days" || ok "$failed failed ssh logins in 7 days"
+users=$(awk -F: '$7 !~ /(nologin|false|sync)$/ {print $1}' /etc/passwd | sort | tr '\n' ' ')
+[ "$users" = "{{ maintenance_expected_users | sort | join(' ') }} " ] && ok "login users: $users" || warn "login users changed: $users"
+for f in /root/.ssh/authorized_keys /home/*/.ssh/authorized_keys /etc/sudoers /etc/sudoers.d /etc/passwd /etc/shadow; do
+  [ -e "$f" ] && [ -n "$(find "$f" -maxdepth 0 -mtime -7)" ] && warn "$f changed in the last 7 days"
+done
+ok "auth file check done"
+
+section "ClamAV"
+sig=$(find /var/lib/clamav -name 'daily.c*' -mtime -2 | head -1)
+[ -n "$sig" ] && ok "signatures updated within 2 days" || warn "ClamAV signatures older than 2 days"
+# scan.log rotates weekly, so read the current file plus last week's (newest last).
+scans=$(zcat -f /var/log/clamav/scan.log.1.gz /var/log/clamav/scan.log 2>/dev/null)
+info "scans this week: $(grep -c 'Infected files:' <<< "$scans"), last: $(grep 'Infected files:' <<< "$scans" | tail -1 | xargs)"
+[ "$(grep -c 'Infected files:' <<< "$scans")" -eq 0 ] && warn "no completed ClamAV scan in the last week"
+found=$(grep 'FOUND' <<< "$scans" | tail -20)
+[ -n "$found" ] && warn "ClamAV detections in scan.log:" && echo "$found" | sed 's/^/          /' || ok "no ClamAV detections"
+
+section "Suspicious files in media/downloads"
+sus=$(find {{ maintenance_scan_dirs | join(' ') }} -type f \( {% for e in maintenance_risky_extensions %}-iname '*.{{ e }}'{% if not loop.last %} -o {% endif %}{% endfor %} \) 2>/dev/null)
+exe=$(find {{ maintenance_scan_dirs | join(' ') }} -type f -size -50M -print0 2>/dev/null | xargs -0 -r file --mime-type \
+      | grep -E 'x-dosexec|x-executable|x-msi|x-sharedlib|x-shellscript|x-msdownload' | cut -d: -f1)
+if [ -n "$sus$exe" ]; then warn "risky files found:"; printf '%s\n%s\n' "$sus" "$exe" | sort -u | sed '/^$/d; s/^/          /'
+else ok "no executables or risky file types"; fi
+
+if [ "${1:-}" != "--no-cleanup" ]; then
+  section "Cleanup"
+  info "stopped containers: $(docker container prune -f --filter until=24h | tail -1)"
+  info "unused images (>7d): $(docker image prune -a -f --filter until=168h | tail -1)"
+  info "journal: $(journalctl --vacuum-size={{ maintenance_journal_max }} 2>&1 | tail -1)"
+  apt-get clean && info "apt cache cleared"
+  find "$REPORT_DIR" -name 'maintenance_*.log' -mtime +{{ maintenance_report_retention_days }} -delete
+  info "disk after: / $(df --output=pcent / | tail -1 | tr -d ' '), /mnt/media $(df --output=pcent /mnt/media | tail -1 | tr -d ' ')"
+fi
+
+section "Summary"
+count=0; [ -n "${WARNINGS[*]-}" ] && count=$(printf '%s\n' "${WARNINGS[@]}" | wc -l)
+if [ "$count" -gt 0 ]; then
+  echo "  $count warning(s):"; printf '   - %s\n' "${WARNINGS[@]}"
+  status="⚠️ $count warning(s)"; prio=6
+else
+  echo "  all checks passed"; status="✅ all checks passed"; prio=2
+fi
+{% if maintenance_gotify_enabled %}
+curl -s -m 15 -X POST "{{ maintenance_gotify_url }}/message?token={{ maintenance_gotify_token }}" \
+  -F "title=Homelab maintenance: $status" -F "message=$(printf '%s\n' "${WARNINGS[@]-all good}" | head -20)" \
+  -F "priority=$prio" >/dev/null || true
+{% endif %}
+echo "  report: $REPORT"
