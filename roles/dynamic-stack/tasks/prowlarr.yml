@@ -1,0 +1,26 @@
+---
+# Indexers are added in the Prowlarr UI; deploy only switches off the ones named in
+# services.prowlarr.disabled_indexers (e.g. dead sites that keep failing health checks).
+- name: Prowlarr - API key
+  command: sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' {{ stack.config_path }}/prowlarr/config.xml
+  register: prowlarr_key
+  changed_when: false
+  no_log: true
+
+- name: Prowlarr - indexers
+  command: >-
+    docker exec prowlarr curl -sf -H "X-Api-Key: {{ prowlarr_key.stdout }}" http://localhost:9696/api/v1/indexer
+  register: prowlarr_indexers
+  changed_when: false
+  no_log: true
+
+- name: Prowlarr - disable indexers
+  command: >-
+    docker exec -i prowlarr curl -sf -X PUT -H "X-Api-Key: {{ prowlarr_key.stdout }}" -H "Content-Type: application/json"
+    --data-binary @- "http://localhost:9696/api/v1/indexer/{{ item.id }}?forceSave=true"
+  args:
+    stdin: "{{ item | combine({'enable': false}) | to_json }}"
+  loop: "{{ prowlarr_indexers.stdout | from_json | selectattr('name', 'in', services.prowlarr.disabled_indexers) | selectattr('enable') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true

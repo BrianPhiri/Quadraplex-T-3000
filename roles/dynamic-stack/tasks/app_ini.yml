@@ -1,0 +1,35 @@
+---
+# Some apps own their ini file (the UI writes to it, and it may be rewritten on shutdown), so
+# deploy only sets the keys in services.<app>.ini_settings ({section: {key: value}}) inside
+# services.<app>.ini_file (relative to the app's config dir); everything else stays app-managed.
+# Edits happen only on drift, with the container stopped. Skipped until the app has created the
+# file on first start.
+- name: "{{ app }} - {{ services[app].ini_file }}"
+  stat:
+    path: "{{ ini_path }}"
+  register: ini_stat
+
+- name: "{{ app }} - repo ini settings"
+  when: ini_stat.stat.exists
+  block:
+    - name: "{{ app }} - check ini settings"
+      community.general.ini_file: &ini
+        path: "{{ ini_path }}"
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        no_extra_spaces: "{{ services[app].ini_no_extra_spaces | default(false) }}"
+      loop: "{{ ini_items }}"
+      loop_control: &label
+        label: "{{ item.section }}/{{ item.option }}"
+      check_mode: true
+      register: ini_check
+
+    - name: "{{ app }} - apply ini settings (stopped while editing)"
+      when: ini_check is changed
+      block:
+        - command: docker stop {{ app }}
+        - community.general.ini_file: *ini
+          loop: "{{ ini_items }}"
+          loop_control: *label
+        - command: docker start {{ app }}

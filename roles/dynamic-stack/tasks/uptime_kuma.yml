@@ -1,0 +1,31 @@
+---
+# Monitors are created in the Kuma UI; deploy only keeps the URL of each monitor named in
+# services.uptime_kuma.monitors and drops duplicates of those names (keeps the oldest; heartbeats
+# go with ON DELETE CASCADE). Other monitors are left alone. sqlite3 runs as the connecting user
+# (owns kuma.db), with Kuma stopped while editing.
+- name: Uptime Kuma - current monitors
+  command: sqlite3 -json {{ kuma_db }} "select id, name, url, id > (select min(id) from monitor m where m.name = monitor.name) as dupe from monitor"
+  become: false
+  register: kuma_current
+  changed_when: false
+
+- name: Uptime Kuma - apply repo monitors (stopped while editing)
+  when: kuma_dupes or kuma_wrong
+  vars:
+    kuma_rows: "{{ kuma_current.stdout | default('[]', true) | from_json | selectattr('name', 'in', monitors) | list }}"
+    kuma_dupes: "{{ kuma_rows | selectattr('dupe') | map(attribute='id') | list }}"
+    kuma_wrong: >-
+      {% set w = [] %}{% for r in kuma_rows if not r.dupe and r.url != monitors[r.name] %}{% set _ = w.append(r.name) %}{% endfor %}{{ w }}
+  block:
+    - command: docker stop uptime_kuma
+    - command: sqlite3 {{ kuma_db }}
+      become: false
+      args:
+        stdin: |
+          PRAGMA foreign_keys = ON;
+          {% if kuma_dupes %}DELETE FROM monitor WHERE id IN ({{ kuma_dupes | join(',') }});{% endif %}
+          {% for name in kuma_wrong %}
+          UPDATE monitor SET url = '{{ monitors[name] }}' WHERE name = '{{ name }}';
+          {% endfor %}
+    - command: docker start uptime_kuma
+  # ponytail: names/urls go into SQL unescaped; they come from the repo, not users

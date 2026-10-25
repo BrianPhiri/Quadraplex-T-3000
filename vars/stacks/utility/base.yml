@@ -135,6 +135,22 @@ utility_services:
       enabled: true
       host: "uptime"
       domain: "{{ utility_stack.stack_domain }}"
+    # URL per monitor name, kept in sync on deploy (uptime_kuma.yml); monitors not listed stay UI-managed
+    monitors:
+      Kavita: "https://kavita.{{ domain }}/api/health"
+      Prowlarr: "https://prowlarr.{{ domain }}/ping"
+      Sonarr: "https://sonarr.{{ domain }}/ping"
+      Radarr: "https://radarr.{{ domain }}/ping"
+      Seerr: "https://seerr.{{ domain }}/api/v1/status"
+      JellyFin: "https://watch.{{ domain }}/health"
+      QBitTorrent: "https://torrent.{{ domain }}"
+      Mylar: "https://mylar.{{ domain }}"
+      Profilarr: "https://profilarr.{{ domain }}"
+      Qui: "https://qui.{{ domain }}"
+      Grafana: "https://grafana.{{ domain }}/api/health"
+      Gotify: "https://notify.{{ domain }}/health"
+      Portracker: "https://ports.{{ domain }}"
+      Mealie: "https://mealie.{{ domain }}/api/app/about"
   filestash:
     enabled: false
     port: 8334
