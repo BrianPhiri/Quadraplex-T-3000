@@ -22,9 +22,36 @@
     stack_systemd_template: "{{ stack_role_path }}/templates/systemd/stack.service.j2"
     services: "{{ enabled_services }}"
 
-- name: LazyLibrarian settings
-  include_tasks: lazylibrarian.yml
-  when: "'lazylibrarian' in enabled_services and (services.lazylibrarian.traefik.enabled | default(false))"
+- name: App-owned ini settings
+  include_tasks: app_ini.yml
+  loop: "{{ enabled_services | select('in', services | dict2items | selectattr('value.ini_settings', 'defined') | map(attribute='key')) | list }}"
+  loop_control:
+    loop_var: app
+  vars:
+    ini_path: "{{ stack.config_path }}/{{ app }}/{{ services[app].ini_file }}"
+    ini_items: >-
+      {% set l = [] %}{% for s, kv in services[app].ini_settings.items() %}{% for k, v in kv.items() %}{% set _ = l.append({'section': s, 'option': k, 'value': v}) %}{% endfor %}{% endfor %}{{ l }}
+
+# Audiobookshelf can't create its podcasts mount itself; same owner/mode as the other media dirs
+- name: Audiobookshelf podcasts folder
+  file:
+    path: "{{ stack.media_path }}/podcasts"
+    state: directory
+    owner: "{{ stack_user_id }}"
+    group: "{{ stack_group_id }}"
+    mode: '0775'
+  when: "'audiobookshelf' in enabled_services"
+
+- name: Prowlarr disabled indexers
+  include_tasks: prowlarr.yml
+  when: "'prowlarr' in enabled_services and services.prowlarr.disabled_indexers is defined"
+
+- name: Uptime Kuma monitors
+  include_tasks: uptime_kuma.yml
+  when: "'uptime_kuma' in enabled_services and services.uptime_kuma.monitors is defined"
+  vars:
+    kuma_db: "{{ stack.data_path }}/uptime_kuma/kuma.db"
+    monitors: "{{ services.uptime_kuma.monitors }}"
 
 - name: AdGuard Home settings
   include_tasks: adguard_home.yml

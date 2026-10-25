@@ -84,6 +84,8 @@ media_services:
       enabled: true
       host: "prowlarr"
       domain: "{{ domain }}"
+    # Switched off on deploy (prowlarr.yml); everything else about indexers stays UI-managed
+    disabled_indexers: [Torrent Downloads, Internet Archive]
   sonarr:
     enabled: true
     version: "{{ media_stack.versions.sonarr | default('latest') }}"
@@ -164,6 +166,25 @@ media_services:
       enabled: true
       host: "torrent"
       domain: "{{ domain }}"
+    # App-owned conf (app_ini.yml): only these keys are set; WebUI password/session stay in the UI.
+    # Categories live in categories.json, not here.
+    ini_file: qBittorrent/qBittorrent.conf
+    ini_no_extra_spaces: true
+    ini_settings:
+      BitTorrent:
+        Session\DefaultSavePath: /downloads/
+        Session\TempPath: /downloads/incomplete/
+        Session\Port: "6881"  # = peer_port
+        Session\QueueingSystemEnabled: "true"
+        Session\MaxActiveDownloads: "10"
+        Session\MaxActiveTorrents: "20"
+        Session\MaxActiveUploads: "1"
+        Session\GlobalMaxRatio: "0"
+        Session\ShareLimitAction: Stop
+      Preferences:
+        Downloads\SavePath: /downloads/
+        Downloads\TempPath: /downloads/incomplete/
+        WebUI\Username: brian
   kavita:
     enabled: true
     internal_port: 5003
@@ -183,6 +204,35 @@ media_services:
       enabled: true
       host: "mylar"
       domain: "{{ domain }}"
+    # App-owned config.ini (app_ini.yml): only these keys are set. The Prowlarr torznab indexers
+    # ([Torznab] extra_torznabs, one flat comma list) stay UI/Prowlarr-managed.
+    ini_file: mylar/config.ini
+    ini_settings:
+      General:
+        destination_dir: /comics
+        failed_download_handling: "True"
+        failed_auto: "True"
+      PostProcess:
+        post_processing: "True"
+        enable_check_folder: "True"
+        check_folder: /downloads/comics
+      CV:
+        comicvine_api: "{{ vault_comicvine_api_key }}"
+      Client:
+        torrent_downloader: "5"  # qBittorrent
+      Torrents:
+        enable_torrents: "True"
+        enable_torrent_search: "True"
+      qBittorrent:
+        qbittorrent_host: http://qbittorrent:8080
+        qbittorrent_username: brian
+        qbittorrent_password: "{{ vault_qbittorrent_password }}"
+        qbittorrent_label: comics
+        qbittorrent_folder: /downloads/comics
+      DDL:
+        enable_ddl: "True"
+        enable_getcomics: "True"
+        ddl_location: /downloads/mylar-ddl
   immich:
     enabled: false
     port: 2283
@@ -240,6 +290,32 @@ media_services:
       enabled: true
       host: "lazylibrarian"
       domain: "{{ domain }}"
+    # Its startup logger prints changed config values (passwords included) to stdout before
+    # reading config.ini; no setting turns that off, so keep stdout out of docker/Loki. Its own
+    # file log (INFO by default) is unaffected.
+    log_driver: none
+    # App-owned config.ini (app_ini.yml): only these keys are set. LazyLibrarian drops keys left at
+    # their default when it saves (e.g. loglevel 20, audiocat 3030), so only non-defaults go here.
+    ini_file: config.ini
+    ini_settings:
+      GENERAL:
+        ebook_dir: /books/ebooks
+        audio_dir: /audiobooks
+        download_dir: /downloads
+      WEBSERVER:
+        http_proxy: "True"  # honour Traefik's X-Forwarded-Proto so redirects stay https
+      LOGGING:
+        logfileredact: "True"
+      TORRENT:
+        tor_downloader_qbittorrent: "True"
+      QBITTORRENT:
+        qbittorrent_host: http://qbittorrent
+        qbittorrent_port: "8080"
+        qbittorrent_user: brian
+        qbittorrent_pass: "{{ vault_qbittorrent_password }}"
+        qbittorrent_label: books
+      POSTPROCESS:
+        audiobook_dest_folder: $Author/$Title
   shelfmark:
     enabled: false
     version: "{{ media_stack.versions.shelfmark | default('latest') }}"

@@ -14,6 +14,10 @@ lazylibrarian:
     - {{ stack_config.downloads_path }}:/downloads
     - {{ stack_config.media_path }}/books:/books
     - {{ stack_config.media_path }}/audiobooks:/audiobooks
+{% if services.lazylibrarian.log_driver is defined %}
+  logging:
+    driver: {{ services.lazylibrarian.log_driver }}
+{% endif %}
 {% if services.lazylibrarian.port is defined %}
   ports:
     - "{{ services.lazylibrarian.port }}:5299"
