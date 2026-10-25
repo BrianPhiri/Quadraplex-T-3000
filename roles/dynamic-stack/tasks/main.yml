@@ -25,3 +25,7 @@
 - name: LazyLibrarian settings
   include_tasks: lazylibrarian.yml
   when: "'lazylibrarian' in enabled_services and (services.lazylibrarian.traefik.enabled | default(false))"
+
+- name: AdGuard Home settings
+  include_tasks: adguard_home.yml
+  when: "'adguard_home' in enabled_services and services.adguard_home.settings is defined"

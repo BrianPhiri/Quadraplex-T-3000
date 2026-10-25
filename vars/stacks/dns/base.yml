@@ -36,3 +36,10 @@ dns_services:
     http: 81
     https: 8443
     version: "{{ dns_stack.versions.adguard_home | default('latest') }}"
+    # Merged into AdGuardHome.yaml on deploy (tasks/adguard_home.yml), along with http.address
+    # from http above; other keys stay UI-managed.
+    settings:
+      querylog:
+        interval: 7d
+      statistics:
+        interval: 1d
