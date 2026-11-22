@@ -33,7 +33,7 @@ media_stack:
   versions:
     jellyfin: "12.4ubu2604-ls60"
     seerr: "v3.5.2"
-    sonarr: "4.0.20.3014-ls5"
+    sonarr: "4.0.20.3014-ls329"
     radarr: "6.4.4.10685-ls327"
     prowlarr: "2.7.0.5723-ls168"
     bazarr: "latest"
