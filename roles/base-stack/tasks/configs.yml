@@ -6,7 +6,6 @@
     owner: "{{ stack_user_id }}"
     group: "{{ stack_group_id }}"
     mode: '0600'
-    backup: yes
   no_log: true
   notify: "restart {{ stack_name }}"
 

@@ -2,3 +2,16 @@
 # Host hardening: key-only SSH, docker group cleanup, automatic updates, SMART monitoring.
 # Users dropped from the docker group (docker group = root on the host).
 hardening_docker_group_remove: [emmental]
+# Only these users may log in over SSH. A wrong name here locks you out.
+hardening_ssh_allow_users: ["{{ ansible_user }}"]
+# Stopped, disabled and masked (undo: systemctl unmask). Sockets come before the service they start.
+hardening_masked_units:
+  - iscsid.socket
+  - iscsid.service
+  - open-iscsi.service
+  - multipathd.socket
+  - multipathd.service
+  - ModemManager.service
+  - open-vm-tools.service
+  - vgauth.service
+hardening_snaps_remove: [etcd]

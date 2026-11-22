@@ -7,7 +7,10 @@
       # Managed by Ansible (roles/hardening)
       PasswordAuthentication no
       PermitRootLogin no
+      X11Forwarding no
+      AllowUsers {{ hardening_ssh_allow_users | join(' ') }}
     mode: '0644'
+    validate: sshd -t -f %s
   register: hardening_sshd
 
 # Reload (not restart) so open sessions survive; a bad config fails here before the reload.
@@ -50,3 +53,34 @@
     name: smartmontools
     enabled: true
     state: started
+
+- name: Stop, disable and mask unused services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ hardening_masked_units }}"
+
+- name: Remove unused snaps
+  community.general.snap:
+    name: "{{ hardening_snaps_remove }}"
+    state: absent
+
+# Old secrets left behind by `backup: yes` on the stack .env templates (/opt/<stack>/.env.<pid>.<date>~).
+- name: Find stale .env backups in the stack directories
+  ansible.builtin.find:
+    paths: /opt
+    patterns: '.env.*~'
+    hidden: true
+    recurse: true
+    depth: 2
+  register: hardening_env_backups
+
+- name: Delete stale .env backups
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ hardening_env_backups.files }}"
+  loop_control:
+    label: "{{ item.path }}"
