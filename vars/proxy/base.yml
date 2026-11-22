@@ -14,7 +14,7 @@ proxy_stack:
   network_name: "traefik_net"
 
   versions:
-    traefik: "v3.7.16"
+    traefik: "v3.7.19"
 
 # Service configuration
 proxy_services:

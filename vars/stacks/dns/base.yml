@@ -19,8 +19,8 @@ dns_stack:
       driver: bridge
 
   versions:
-    adguard_home: "v0.107.79"
-    cadvisor: "v0.60.6"
+    adguard_home: "v0.107.80"
+    cadvisor: "v0.61.1"
     node_exporter: "v1.12.1"
 
 # Service configuration
