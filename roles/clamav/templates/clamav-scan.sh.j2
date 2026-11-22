@@ -1,77 +1,66 @@
-SCAN_DIR="{{ scan_directory }}"
-LOG_FILE="{{ clamav_log_file }}"
-GOTIFY_URL="{{ gotify_url }}"
-GOTIFY_TOKEN="{{ gotify_token }}"
-DATE=$(date '+%Y-%m-%d %H:%M:%S')
-HOSTNAME=$(hostname)
-FQDN=$(hostname -f 2>/dev/null || hostname)
-IP=$(hostname -I | awk '{print $1}')
+#!/bin/bash
+# Weekly ClamAV scan, run from root's crontab. Managed by Ansible (roles/clamav).
+# Gotify is notified only when something is found or the scan fails; a clean scan just logs.
+LOG_FILE={{ clamav_log_file | quote }}
+SCAN_DIRS=({% for dir in clamav_scan_dirs %}{{ dir | quote }} {% endfor %})
+EXCLUDE_OPTS=({% for dir in clamav_exclude_dirs %}--exclude-dir={{ dir | quote }} {% endfor %})
+{% if clamav_gotify_enabled | bool %}
+GOTIFY_URL={{ clamav_gotify_url | quote }}
+GOTIFY_TOKEN={{ clamav_gotify_token | quote }}
+{% else %}
+GOTIFY_URL=""
+GOTIFY_TOKEN=""
+{% endif %}
 
-# Exclude directories
-EXCLUDE_OPTS=""
-{% for dir in exclude_dirs %}
-EXCLUDE_OPTS="$EXCLUDE_OPTS --exclude-dir={{ dir }}"
-{% endfor %}
+mkdir -p "$(dirname "$LOG_FILE")"
+log() { echo "$*" >> "$LOG_FILE"; }
 
-# Create log directory if it doesn't exist
-mkdir -p "{{ clamav_log_dir }}"
-
-# Function to send Gotify notification (only if configured)
-send_gotify() {
+# Form fields rather than hand-built JSON, and --form-string so that file names
+# containing quotes, newlines, ';' or a leading '@' are sent literally.
+notify() {
+  logger -t clamav-scan -p user.crit "$1" 2>/dev/null
   if [ -z "$GOTIFY_URL" ] || [ -z "$GOTIFY_TOKEN" ]; then
-    echo "Gotify not configured, skipping notification" >> "$LOG_FILE"
+    log "Gotify not configured, notification not sent: $1"
     return 0
   fi
-
-  local title="$1"
-  local message="$2"
-  local priority="$3"
-
-  curl -X POST "${GOTIFY_URL}/message" \
-    -H "Content-Type: application/json" \
-    -d "{\"title\":\"${title}\",\"message\":\"${message}\",\"priority\":${priority}}" \
-    -H "X-Gotify-Key: ${GOTIFY_TOKEN}" \
-    --silent --show-error
+  curl -sS -f -m 15 -o /dev/null -X POST "${GOTIFY_URL}/message" -H "X-Gotify-Key: ${GOTIFY_TOKEN}" \
+    --form-string "title=$1" --form-string "message=$2" --form-string "priority=$3" >> "$LOG_FILE" 2>&1 \
+    || log "Gotify notification failed: $1"
 }
 
-# Send scan start notification
-send_gotify "🔍 ClamAV Scan Starting" "Full system scan initiated on:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏰ Started: ${DATE}" 3
+# clamscan fails the whole run on a path that doesn't exist, so skip those.
+DIRS=()
+for dir in "${SCAN_DIRS[@]}"; do
+  if [ -e "$dir" ]; then DIRS+=("$dir"); else log "Skipping missing directory: $dir"; fi
+done
 
-# Run scan with exclusions
-echo "=== ClamAV Scan Started: $DATE ===" >> "$LOG_FILE"
-echo "Scanning: $SCAN_DIR" >> "$LOG_FILE"
-echo "Exclusions: {{ exclude_dirs | join(', ') }}" >> "$LOG_FILE"
-
+OUT=$(mktemp)
+trap 'rm -f "$OUT"' EXIT
 START_TIME=$(date +%s)
-clamscan -r -i "$SCAN_DIR" $EXCLUDE_OPTS --log="$LOG_FILE" 2>&1
-SCAN_RESULT=$?
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
-DURATION_MIN=$((DURATION / 60))
+log "=== ClamAV Scan Started: $(date '+%Y-%m-%d %H:%M:%S') ==="
+log "Scanning: ${DIRS[*]}"
 
-# Get scan statistics
-SCANNED=$(grep "Scanned files:" "$LOG_FILE" | tail -1 | awk '{print $3}')
-
-# Check scan results and send appropriate notification
-if [ $SCAN_RESULT -eq 0 ]; then
-  TITLE="✅ ClamAV Scan Complete"
-  MESSAGE="Full system scan completed:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏱ Duration: ${DURATION_MIN} minutes\n📁 Files scanned: ${SCANNED}\n✓ No threats detected\n\n⏰ Completed: ${DATE}"
-  PRIORITY=5
-elif [ $SCAN_RESULT -eq 1 ]; then
-  TITLE="🚨 ClamAV ALERT - Threats Detected!"
-  INFECTED_COUNT=$(grep -c "FOUND" "$LOG_FILE")
-  INFECTED_FILES=$(grep "FOUND" "$LOG_FILE" | tail -10 | sed 's/^/• /')
-  MESSAGE="⚠️ MALWARE DETECTED!\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n🦠 Infected files: ${INFECTED_COUNT}\n⏱ Scan duration: ${DURATION_MIN} minutes\n📁 Files scanned: ${SCANNED}\n\n📋 Recent detections:\n${INFECTED_FILES}\n\n🔍 Full log: ${LOG_FILE}\n⏰ Completed: ${DATE}"
-  PRIORITY=10
+if [ -z "${DIRS[*]}" ]; then
+  echo "ERROR: none of the configured scan directories exist" > "$OUT"
+  SCAN_RESULT=2
 else
-  TITLE="❌ ClamAV Scan Error"
-  MESSAGE="Scan encountered an error:\n\n🖥 Host: ${HOSTNAME}\n🌐 FQDN: ${FQDN}\n📍 IP: ${IP}\n⏱ Duration: ${DURATION_MIN} minutes\n🔍 Check log: ${LOG_FILE}\n\n⏰ Completed: ${DATE}"
-  PRIORITY=8
+  # clamscan exits 0 = clean, 1 = infected file(s) found, anything else = error
+  nice -n 19 ionice -c 3 clamscan -r -i "${EXCLUDE_OPTS[@]}" "${DIRS[@]}" > "$OUT" 2>&1
+  SCAN_RESULT=$?
+fi
+cat "$OUT" >> "$LOG_FILE"
+DURATION_MIN=$(( ($(date +%s) - START_TIME) / 60 ))
+
+if [ $SCAN_RESULT -eq 1 ]; then
+  notify "ClamAV: $(grep -c ' FOUND$' "$OUT") infected file(s) on $(hostname)" \
+    "$(grep ' FOUND$' "$OUT" | head -10)
+Full log: ${LOG_FILE}" 10
+elif [ $SCAN_RESULT -ne 0 ]; then
+  notify "ClamAV scan error on $(hostname) (exit ${SCAN_RESULT})" \
+    "$(grep -i -m 10 -E 'error|warning' "$OUT" || tail -5 "$OUT")
+Full log: ${LOG_FILE}" 8
 fi
 
-# Send Gotify notification
-send_gotify "$TITLE" "$MESSAGE" "$PRIORITY"
-
-echo "=== ClamAV Scan Finished: $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
-echo "Duration: ${DURATION_MIN} minutes" >> "$LOG_FILE"
-echo "" >> "$LOG_FILE"
+log "=== ClamAV Scan Finished: $(date '+%Y-%m-%d %H:%M:%S') (exit ${SCAN_RESULT}, ${DURATION_MIN} min) ==="
+log ""
+exit $SCAN_RESULT

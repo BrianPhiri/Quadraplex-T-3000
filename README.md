@@ -24,7 +24,7 @@ Quadraplex-T-3000/
 │ ├── base-stack.mk # Generic deploy/status/logs/restart for any stack (STACK=)
 │ ├── proxy.mk # Traefik proxy stack targets (deploy-proxy, proxy-*)
 │ ├── backup.mk # Backup & restore targets
-│ └── clamav.mk # ClamAV targets (currently disabled — see root Makefile)
+│ └── clamav.mk # ClamAV weekly scan targets
 │
 ├── inventory/ # Inventory definitions
 │ ├── hosts.yml # The actual inventory used by every make target
@@ -47,7 +47,7 @@ Quadraplex-T-3000/
 │ ├── backup/ # Backup & restore automation
 │ ├── pre-checks/ # Pre-flight checks (Docker present, Python venv, etc.)
 │ ├── users/ # Host user management
-│ └── clamav/ # ClamAV deployment (currently disabled at the Makefile level)
+│ └── clamav/ # ClamAV weekly scan
 │
 ├── vars/ # Declarative stack/service configuration
 │ ├── versions.yml # Pinned Docker/containerd/compose versions
@@ -114,7 +114,7 @@ target). The sections below group the commands by which file they come from.
 | `makefiles/base-stack.mk` | Deploy/manage **any** stack (media, utility, dns) — the generic interface |
 | `makefiles/proxy.mk` | Deploy/manage the Traefik proxy stack specifically |
 | `makefiles/backup.mk` | Backup & restore |
-| `makefiles/clamav.mk` | ClamAV — present but **not included** by the root Makefile (disabled/unmaintained) |
+| `makefiles/clamav.mk` | ClamAV weekly scan |
 
 ---
 
@@ -226,10 +226,13 @@ on S3. See `docs/BACKUP.md`.
 
 ---
 
-### ClamAV (`makefiles/clamav.mk` — disabled)
+### ClamAV (`makefiles/clamav.mk`)
 
-A full ClamAV integration (deploy/test/status/logs/update targets, backed by `roles/clamav/` and
-`playbooks/deploy-clamav.yml`) exists but its `include` is commented out in the root `Makefile`
-because it hasn't been verified against the current stack layout. Uncomment
-`#include makefiles/clamav.mk` in the root `Makefile` if you want to use/test it.
+A weekly `clamscan` (Wednesday 23:00 server time, from root's crontab) of the download directory,
+`/opt`, `/home`, `/root`, `/tmp`, `/var/tmp` and `/usr/local`; see `roles/clamav/defaults/main.yml`.
+Gotify is notified only on detections or scan errors, using the `backup_gotify_*` settings.
+
+`make deploy-clamav TARGET=host` - Install ClamAV, the scan script and the cron job.
+`make clamav-scan TARGET=host` - Run the scan now.
+`make clamav-status` / `clamav-logs TARGET=host` - Cron entry, signature age, services / recent scan log.
 
