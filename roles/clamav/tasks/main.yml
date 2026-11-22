@@ -3,11 +3,23 @@
   apt:
     name:
       - clamav
-      - clamav-daemon
       - clamav-freshclam
       - curl
     state: present
     update_cache: yes
+  when: ansible_os_family == "Debian"
+
+# The scan uses standalone clamscan, so clamd only holds the signature DB in RAM for nothing.
+- name: Stop and disable clamd (unused by the scan)
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - clamav-daemon.socket
+    - clamav-daemon.service
+  register: clamd_off
+  failed_when: clamd_off is failed and 'Could not find' not in (clamd_off.msg | default(''))
   when: ansible_os_family == "Debian"
 
 - name: Install ClamAV packages (RedHat/CentOS)
@@ -47,13 +59,15 @@
   template:
     src: clamav-scan.sh.j2
     dest: /usr/local/bin/clamav-scan.sh
-    mode: '0755'
+    mode: '0700'  # holds the Gotify token
 
+# Same name as the entry already in root's crontab, so it is replaced in place, not duplicated.
 - name: Create cron job for automated scans
   cron:
     name: "ClamAV automated scan"
-    minute: "{{ scan_cron_minute }}"
-    hour: "{{ scan_cron_hour }}"
+    minute: "{{ clamav_cron_minute }}"
+    hour: "{{ clamav_cron_hour }}"
+    weekday: "{{ clamav_cron_weekday }}"
     job: "/usr/local/bin/clamav-scan.sh"
     user: root
     state: present
@@ -68,8 +82,8 @@
   debug:
     msg: 
       - "ClamAV has been configured successfully!"
-      - "Scans will run every {{ scan_cron_hour }}:{{ scan_cron_minute }}"
-      - "Scanning directory: {{ scan_directory }}"
-      - "Gotify notifications: {{ 'Enabled' if gotify_url and gotify_token else 'Disabled (no URL/token provided)' }}"
+      - "Cron schedule (minute hour weekday): {{ clamav_cron_minute }} {{ clamav_cron_hour }} {{ clamav_cron_weekday }}"
+      - "Scanning: {{ clamav_scan_dirs | join(' ') }}"
+      - "Gotify notifications: {{ 'Enabled' if (clamav_gotify_enabled | bool) and clamav_gotify_url and clamav_gotify_token else 'DISABLED - detections are only logged (set backup_gotify_enabled/url and vault_backup_gotify_token)' }}"
       - "Log file: {{ clamav_log_file }}"
       - "Manual test: /usr/local/bin/clamav-scan.sh"

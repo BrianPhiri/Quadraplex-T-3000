@@ -6,10 +6,7 @@ include makefiles/backup.mk
 include makefiles/vault.mk
 include makefiles/maintenance.mk
 include makefiles/hardening.mk
-# clamav.mk is disabled/unmaintained (its role and playbook still exist but this
-# integration hasn't been verified against the current stack layout) — left commented
-# out intentionally rather than deleted; see reports/architecture-review.md.
-#include makefiles/clamav.mk
+include makefiles/clamav.mk
 
 # Makefile - Docker Installation Commands
 .PHONY: help install-docker docker-info docker-test docker-cleanup

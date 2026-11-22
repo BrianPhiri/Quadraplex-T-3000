@@ -1,20 +1,29 @@
-gotify_url: ""
-gotify_token: ""
+# Weekly scan of the places malware would actually land (templates/clamav-scan.sh.j2).
+# Not the finished video library, not /var/lib/docker.
+clamav_scan_dirs:
+  - /mnt/media/downloads   # qBittorrent save path; its incomplete/ temp dir lives inside it
+  - /opt                   # stack configs and data
+  - /home
+  - /root
+  - /tmp
+  - /var/tmp
+  - /usr/local
 
-# Scan configuration
-scan_directory: "/"
+# clamscan --exclude-dir regexes: metric/log databases that churn while being read.
+clamav_exclude_dirs:
+  - ^/opt/utility-stack/data/prometheus
+  - ^/opt/utility-stack/data/loki
 
-# Exclude pseudo-filesystems and temporary directories
-exclude_dirs:
-  - "/proc"
-  - "/sys"
-  - "/dev"
-  - "/run"
-  - "/tmp"
+# Cron schedule in server time (UTC): Wednesday 23:00. Clear of the 02:00 daily backup
+# and the Sunday 08:00 maintenance timer.
+clamav_cron_minute: "0"
+clamav_cron_hour: "23"
+clamav_cron_weekday: "3"
 
-# Cron schedule (default: every 12 hours at midnight and noon)
-scan_cron_minute: "0"
-scan_cron_hour: "*/12"
+# Same Gotify app token as backups, if configured. Only detections and scan errors notify.
+clamav_gotify_enabled: "{{ backup_gotify_enabled | default(false) }}"
+clamav_gotify_url: "{{ backup_gotify_url | default('') }}"
+clamav_gotify_token: "{{ backup_gotify_token | default('') }}"
 
 # Log file location
 clamav_log_file: "/var/log/clamav/scan.log"
