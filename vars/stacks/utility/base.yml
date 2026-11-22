@@ -39,7 +39,6 @@ utility_stack:
     promtail: "3.6.8"
     homeassistant: "stable"
     pairdrop: "latest"
-    portracker: "1.3.14"
     mealie: "v3.28.0"
     syncthing: "v2.1.6-ls231"
     rsshub: "latest"
@@ -154,15 +153,6 @@ utility_services:
     traefik:
       enabled: true
       host: "view"
-      domain: "{{ utility_stack.stack_domain }}"
-  portracker:
-    enabled: true
-    version: "{{ utility_stack.versions.portracker | default('latest') }}"
-    networks:
-      - traefik_net
-    traefik:
-      enabled: true
-      host: "ports"
       domain: "{{ utility_stack.stack_domain }}"
   mealie:
     enabled: true

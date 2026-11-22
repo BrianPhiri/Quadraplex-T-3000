@@ -4,7 +4,7 @@ It installs **Docker**, configures **Traefik** as a reverse proxy, and orchestra
 
 - **Media services (Arr stack)** – Radarr, Sonarr, Prowlarr, etc.  
 - **Monitoring tools** – Prometheus, cAdvisor, Grafana, Uptime Kuma.  
-- **Management utilities** – Gotify, Portracker, Mealie, and helper services.  
+- **Management utilities** – Gotify, Mealie, and helper services.  
 
 All services are grouped into stacks, making it easy to enable or disable specific apps and extend the setup with new deployments.  
 
