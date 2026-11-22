@@ -14,6 +14,20 @@ entryPoints:
   https:
     address: ":443"
 
+# Access log goes to stdout: Promtail already ships every container's stdout to
+# Loki, and Docker's json-file rotation caps it on disk.
+# Query in Grafana: {container="traefik"} | json | ClientHost != ""
+accessLog:
+  format: json
+  addInternals: true   # also log dashboard/API hits
+  fields:
+    headers:
+      defaultMode: drop   # never log Authorization, Cookie, Set-Cookie, X-Api-Key, ...
+      names:
+        User-Agent: keep
+    queryParameters:
+      defaultMode: drop   # the *arr apps take ?apikey=... in the URL
+
 serversTransport:
   insecureSkipVerify: {{ proxy_services.traefik.insecure_skip_verify | default('true') }}
 
