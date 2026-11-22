@@ -58,7 +58,6 @@
     { "matchDepNames": ["loki"], "overridePackageName": "grafana/loki" },
     { "matchDepNames": ["mealie"], "overridePackageName": "ghcr.io/mealie-recipes/mealie" },
     { "matchDepNames": ["node_exporter"], "overridePackageName": "prom/node-exporter" },
-    { "matchDepNames": ["portracker"], "overridePackageName": "mostafawahied/portracker" },
     { "matchDepNames": ["profilarr"], "overridePackageName": "ghcr.io/dictionarry-hub/profilarr" },
     { "matchDepNames": ["prometheus"], "overridePackageName": "prom/prometheus" },
     { "matchDepNames": ["promtail"], "overridePackageName": "grafana/promtail" },
