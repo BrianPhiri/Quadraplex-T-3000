@@ -70,7 +70,7 @@ fi
 section "Backups"
 fails=$(journalctl -u backup-daily --since "-7 days" --no-pager -o cat | grep -c 'FAILED' || true)
 journalctl -u backup-daily --since "-7 days" --no-pager -o cat | grep -E '^\[.*(FAILED|done)' | tail -1 | sed 's/^/        last: /'
-[ "$fails" -gt 0 ] && warn "backup reported failures on $fails of the last 7 runs" || ok "no backup failures in 7 days"
+[ "$fails" -gt 0 ] && warn "backup reported $fails failure(s) in the last 7 days" || ok "no backup failures in 7 days"
 newest=$(find "{{ backup_base_dir }}" -name '*.tar.gz' -mtime -2 2>/dev/null | head -1)
 [ -n "$newest" ] && ok "fresh archive: $(basename "$newest")" || warn "no backup archive newer than 2 days in {{ backup_base_dir }}"
 
